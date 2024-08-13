@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "trading-information"
+version = "0.1.0"
+description = ""
+authors = ["tdfalc <tomdfalc@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+tfds = "^0.2"
+scipy = "^1.14.0"
+numpy = "^2.0.1"
+gurobipy = "^11.0.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
