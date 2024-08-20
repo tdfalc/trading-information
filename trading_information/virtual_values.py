@@ -67,14 +67,39 @@ class VirtualValues:
         integral = (self.types * (1 - self.alpha) - 1 + self.alpha) * self.cdf(
             self.types
         ) + self.alpha * cumulative_trapezoid(self.cdf(self.types), self.types, initial=0)
+
+        # def integr(t):
+        #     return (t * (1 - self.alpha) - 1 + self.alpha) * self.pdf(t) + self.cdf(t)
+
+        # from scipy.integrate import quad
+
+        # integral = np.zeros(len(self.types))
+        # for i in range(len(integral)):
+        #     t = self.types[i]
+        #     integral[i] = quad(integr, a=0, b=t, limit=1000)[0]
+
         return self._iron(integral)
 
     def _ironed_negative_values(self):
         integral = self.types * (1 + self.alpha) * self.cdf(
             self.types
         ) - self.alpha * cumulative_trapezoid(self.cdf(self.types), self.types, initial=0)
+
+        # def integr(t):
+        #     return t * (1 + self.alpha) * self.pdf(t) + self.cdf(t)
+
+        # from scipy.integrate import quad
+
+        # integral = np.zeros(len(self.types))
+        # for i in range(len(integral)):
+        #     t = self.types[i]
+        #     integral[i] = quad(integr, a=0, b=t, limit=1000)[0]
+
+        # return np.zeros(len(integral))
+
         return self._iron(integral)
 
-    def _iron(self, integral: _FloatsCallable) -> _Floats:
+    def _iron(self, integral: _Floats) -> _Floats:
         envelope = convex_envelope(self.types, integral)
+
         return np.gradient(envelope, 1 / len(self.types))
