@@ -78,7 +78,10 @@ class VirtualValues:
         #     t = self.types[i]
         #     integral[i] = quad(integr, a=0, b=t, limit=1000)[0]
 
-        return self._iron(integral)
+        vv = self._iron(integral)
+
+        # vv[vv < 0] = 0
+        return vv
 
     def _ironed_negative_values(self):
         integral = self.types * (1 + self.alpha) * self.cdf(
@@ -97,7 +100,9 @@ class VirtualValues:
 
         # return np.zeros(len(integral))
 
-        return self._iron(integral)
+        vv = self._iron(integral)
+        # vv[vv < 0] = 0
+        return vv
 
     def _iron(self, integral: _Floats) -> _Floats:
         envelope = convex_envelope(self.types, integral)

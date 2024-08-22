@@ -11,6 +11,7 @@ if __name__ == "__main__":
     from trading_information.distributions import BetaMixture, Uniform
     from trading_information.virtual_values import VirtualValues
     from trading_information.mechanism import Mechanism
+    from trading_information.hyperopt import HyperOpt
 
     logger = create_logger(__name__)
 
@@ -18,39 +19,76 @@ if __name__ == "__main__":
 
     # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
     dist = Uniform(0, 1)
-    dist = BetaMixture((20, 60), (30, 30), (0.99, 0.01))
-    xs = np.linspace(0, 1, 1000)
-    ys = dist.pdf(xs) * 2.5
+    # from scipy import stats
+
+    # # dist = stats.lognorm(s=0.3)
+    # # dist = BetaMixture((1, 40, 200), (50, 50, 50), (0.3, 0.3, 0.4))
+    # xs = np.linspace(0, 1, 1000)
+    # ys = dist.pdf(xs) * 2.5
+
+    # fig, ax = plt.subplots()
+    # ax.plot(xs, dist.pdf(xs))
+    # fig.savefig("./dist.pdf")
 
     mechanism = Mechanism(num_types=1000, dist=dist)
+    types = mechanism.types
 
-    tau = 5
+    tau = 100
 
     tau0 = tau1 = tau
     prob_state0 = 1
     tj = prob_state0
-    threshold_type = 0.25
+    threshold_type = 0.75
 
     alpha = tau1 - tj * (tau0 + tau1)
 
-    print(alpha)
+    # print(alpha)
 
-    allocations, transfers, multiplier = mechanism.solve(alpha, threshold_type)
+    allocations, transfers, multiplier, obj = mechanism.solve(tau, prob_state0, threshold_type)
 
-    types = mechanism.types
+    # allocations75, transfers, multiplier, obj = mechanism.solve(tau, prob_state0, 0.75)
+    # print("OBJECTIVE 0.75", obj)
+
+    threshold_types = np.linspace(0.1, 0.9, 50)
+    from tqdm import tqdm
+
+    # virtual_values = VirtualValues(dist, types, alpha=alpha, iron=True)
+    # pos_iron = virtual_values.positive
+    # neg_iron = virtual_values.negative
+
+    taus = [0, 1, 2, 3, 4, 50, 100]
+    for tau in taus:
+        print("TAU", tau)
+
+        hyperopt = HyperOpt(mechanism, threshold_types, verbose=10)
+        hyperopt.run(tau, prob_state0)
+
+        fig, ax = plt.subplots()
+        ax.plot(threshold_types, hyperopt.objectives)
+        ax.axvline(x=0.25)
+        ax.axvline(x=0.75)
+        fig.savefig(f"./objectives_{tau}.pdf")
+
+    # # allocations = np.zeros(len(types))
+    # # allocations = np.ones(len(types))
+    # # allocations[: int(len(types) / 2)] = -1
+    # # transfers = mechanism._allocations_to_transfers(allocations)
 
     # virtual_values = VirtualValues(dist, types, alpha=alpha, iron=False)
     # pos = virtual_values.positive
     # neg = virtual_values.negative
 
     # virtual_values = VirtualValues(dist, types, alpha=alpha, iron=True)
+
     # pos_iron = virtual_values.positive
     # neg_iron = virtual_values.negative
 
+    # # pos_iron[500:] = np.linspace(-200000, 100000, 500)
+
     # fig, ax = plt.subplots(figsize=(5, 3))
-    # # ax.plot(types, neg, color="blue", label="Neg")
+    # ax.plot(types, neg, color="blue", label="Neg")
     # ax.plot(types, neg_iron, color="blue", ls="dashed")
-    # # ax.plot(types, pos, color="darkorange", label="Pos")
+    # ax.plot(types, pos, color="darkorange", label="Pos")
     # ax.plot(types, pos_iron, color="darkorange", ls="dashed")
     # ax.legend()
     # ax.axhline(y=0, c="k")
@@ -61,7 +99,7 @@ if __name__ == "__main__":
     # fig.tight_layout()
     # fig.savefig("./virtuals.pdf", dpi=300)
 
-    transfers = mechanism._allocations_to_transfers(allocations)
+    # # transfers = mechanism._allocations_to_transfers(allocations)
 
     fig, ax = plt.subplots(figsize=(5, 3))
     ax.plot(types, allocations)
@@ -70,6 +108,73 @@ if __name__ == "__main__":
     ax.set_xlabel("Allocations")
     fig.tight_layout()
     fig.savefig("./allocations.pdf", dpi=300)
+
+    # def vv(q, i):
+    #     v = neg_iron[i] if q <= 0 else pos_iron[i]
+    #     # if v < 0:
+    #     #     v = 0
+
+    #     return v * q
+
+    # fig, ax = plt.subplots(figsize=(5, 3))
+
+    # objs50 = [vv(q, i) for i, q in enumerate(allocations50)]
+    # objs75 = [vv(q, i) for i, q in enumerate(allocations75)]
+    # print("50", np.mean(objs50))
+    # print("75", np.mean(objs75))
+
+    # print(np.mean(objs50[:500]))
+    # print(np.mean(objs75[:750]))
+
+    # ax.plot(types, objs50, label=0.5)
+    # ax.plot(types, objs75, label=0.75)
+    # prettify(ax=ax)
+    # fig.tight_layout()
+    # fig.savefig("./objs.pdf", dpi=300)
+
+    # tau = 0
+
+    # tau0 = tau1 = tau
+    # prob_state0 = 1
+    # tj = prob_state0
+    # threshold_type = 0.75
+
+    # alpha = tau1 - tj * (tau0 + tau1)
+
+    # theta = 0.001
+    # alls = np.linspace(-1, 1, 100)  # why is this externality not linear?
+
+    # #  because of this, externality cost is not convex
+    # # it is convex for some types but concave for others, so we cannot use toikka!!
+
+    # def externality_for_type(type, x):
+
+    #     ps1 = 1 - type - type * x + (1 - 2 * type) * np.minimum(0, -x)
+    #     externality = 1 - ps1
+
+    #     # externality *= 1 - 2 * tj
+    #     # externality *= tj
+    #     # externality *= tau
+    #     # externality *= dist.pdf(type)
+
+    #     return externality
+
+    # exs = externality_for_type(theta, alls)
+
+    # fig, ax = plt.subplots(figsize=(5, 3))
+    # ax.plot(alls, exs)
+    # prettify(ax=ax)
+    # ax.set_xlabel("Allocations")
+    # fig.tight_layout()
+    # fig.savefig("./check.png", dpi=200)
+
+    # fig, ax = plt.subplots(figsize=(5, 3))
+    # ax.plot(types, allocations)
+    # ax.plot(types, transfers)
+    # prettify(ax=ax)
+    # ax.set_xlabel("Allocations")
+    # fig.tight_layout()
+    # fig.savefig("./allocations.pdf", dpi=300)
 
     exp_transfers, exp_externality = 0, 0
     externalities = np.zeros(len(allocations))
@@ -110,3 +215,43 @@ if __name__ == "__main__":
     # ax.set_xlabel("externalities")
     # fig.tight_layout()
     # fig.savefig("./externalities.pdf", dpi=300)
+
+    # def calc_value_before(type: float) -> float:
+    #     # return type * (type > 0.5)
+    #     return np.maximum(type, 1 - type)
+
+    # def calc_value_after(q: float, type: float) -> float:
+    #     return type * q + 1 + np.minimum(-q, 0)
+
+    # def calculate_gain(q: float, type: float) -> float:
+    #     return np.maximum(0, calc_value_after(q, type) - calc_value_before(type))
+
+    # gains = np.zeros(len(types))
+    # values_before = np.zeros(len(types))
+    # values_after = np.zeros(len(types))
+    # for i, type in tqdm(enumerate(mechanism.types)):
+    #     allocation = allocations[i]
+    #     gains[i] = calculate_gain(allocation, type)
+    #     values_after[i] = calc_value_after(allocation, type)
+    #     values_before[i] = calc_value_before(type)
+
+    # def _allocations_to_transfers(allocation):
+    #     ts = types * allocation
+    #     ts += np.minimum(-allocation, 0)
+    #     ts -= np.cumsum(allocation) / len(types)
+    #     return ts
+
+    # transfers = _allocations_to_transfers(allocations)
+
+    # fig, ax = plt.subplots(figsize=(5, 3))
+    # ax.plot(types, gains, label="Gain")
+
+    # ax.plot(types, transfers, label="Transfers")
+    # print(np.mean(transfers), np.mean(gains))
+    # # ax.plot(types, values_before, label="Before")
+    # # ax.plot(types, values_after, label="After")
+    # ax.legend()
+    # prettify(ax=ax)
+    # ax.set_xlabel("gains")
+    # fig.tight_layout()
+    # fig.savefig("./gains.pdf", dpi=300)

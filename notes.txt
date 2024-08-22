@@ -1,0 +1,2 @@
+If we offered full information to all types, we cant extract any transfer, becase all agents would just pretend to be the lower type,
+so this would not be trutful.

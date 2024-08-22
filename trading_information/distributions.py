@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Union, Sequence
 
 import numpy as np
 from scipy import stats
