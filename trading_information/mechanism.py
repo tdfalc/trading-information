@@ -25,12 +25,27 @@ class Mechanism:
         self._count_types = np.arange(self.num_types, 0, -1)
         self._sum_types = np.sum(self.types > 0)
 
-    def _allocations_to_transfers(self, allocation: _Floats) -> _Floats:
+    def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
         return (
-            self.types * allocation
-            + np.minimum(-allocation, 0)
-            - np.cumsum(allocation) / self.num_types
+            self.types * allocations
+            + np.minimum(-allocations, 0)
+            - np.cumsum(allocations) / self.num_types
         )
+
+    def _allocations_to_externalities(
+        self, allocations: _Floats, tau: float, prob_state0
+    ) -> _Floats:
+
+        def externality_for_type(type, x):
+            ps1 = 1 - type - type * x + (1 - 2 * type) * np.minimum(0, -x)
+            externality = ps1
+            externality *= 1 - 2 * prob_state0
+            externality *= prob_state0
+            externality *= tau
+
+            return externality + tau * prob_state0
+
+        return externality_for_type(self.types, allocations)
 
     def _convert_increments_to_allocations(self, increments: _Floats) -> _Floats:
         return np.cumsum(increments) - 1
@@ -47,7 +62,7 @@ class Mechanism:
                 allocations = model.addMVar(self.num_types, lb=-1, ub=1)
                 model.addConstr(gp.quicksum(allocations) == 0, name="integral")
 
-                objective_value = 0
+                avg_transfer, avg_externality = 0, 0
                 for i, type in enumerate(self.types):
 
                     if i > 0:
@@ -59,33 +74,39 @@ class Mechanism:
                         if type >= threshold_type:
                             model.addConstr(allocations[i] >= 0)
 
-                        transfer = 0
                         if type >= threshold_type:
-                            transfer += -allocations[i] * self._pdfs[i]
-                        transfer += allocations[i] * (self._pdfs[i] * self.types[i] + self._cdfs[i])
+                            avg_transfer += -allocations[i] * self._pdfs[i]
+                        avg_transfer += allocations[i] * (
+                            self._pdfs[i] * self.types[i] + self._cdfs[i]
+                        )
 
                         externality = 1 - self.types[i] * (1 + allocations[i])
                         if type >= threshold_type:
                             externality -= (1 - 2 * self.types[i]) * allocations[i]
                         externality *= alpha
                         externality += tau * prob_state0
+                        avg_externality += externality * self._pdfs[i]
 
-                        objective_value += transfer - externality
+                avg_transfer *= self.step
+                avg_externality *= self.step
 
-                model.setObjective(objective_value * self.step, GRB.MAXIMIZE)
+                model.setObjective(avg_transfer - avg_externality, GRB.MAXIMIZE)
                 model.optimize()
 
                 allocations = allocations.X
                 transfers = self._allocations_to_transfers(allocations)
+                externalities = self._allocations_to_externalities(allocations, tau, prob_state0)
                 multiplier = model.getConstrByName("integral").Pi
-                # print("status", model.status)
 
-                # print("objective", model.ObjVal)
-                # print(
-                #     "allocation mean", np.mean(allocations), "allocation sum", np.sum(allocations)
-                # )
-                # print("transfers", np.mean(transfers))
+                return allocations, transfers, externalities, multiplier, model.ObjVal
 
-                # print(allocations[:350])
-
-                return allocations, transfers, multiplier, model.ObjVal
+                # return {
+                #     "allocations": allocations.X,
+                #     "transfers": self._allocations_to_transfers(allocations.X),
+                #     "externalities": self._allocations_to_externalities(
+                #         allocations.X, tau, prob_state0
+                #     ),
+                #     "multiplier": model.getConstrByName("integral").Pi,
+                #     "avg_transfer": avg_transfer.getValue(),
+                #     "avg_externality": avg_externality.getValue(),
+                # }

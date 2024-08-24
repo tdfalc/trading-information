@@ -36,8 +36,6 @@ class HyperOpt:
             )
         )
 
-    def best(self, tolerance: Optional[float] = None) -> Union[float, _Floats]:
-        tolerance = 1e-9 if tolerance is None else tolerance
-        diff = np.abs(self._objectives - np.max(self._objectives))
-        indices = np.where(diff <= tolerance)[0]
-        return [self.threshold_types[i] for i in indices]
+    def best(self) -> float:
+        idx = np.argmax(self._objectives)
+        return self.threshold_types[idx]

@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
     dist = Uniform(0, 1)
+    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
     # from scipy import stats
 
     # # dist = stats.lognorm(s=0.3)
@@ -44,7 +45,22 @@ if __name__ == "__main__":
 
     # print(alpha)
 
-    allocations, transfers, multiplier, obj = mechanism.solve(tau, prob_state0, threshold_type)
+    output = mechanism.solve(tau, prob_state0, threshold_type)
+    allocations = output["allocations"]
+    transfers1 = output["transfers"]
+    externalities1 = output["externalities"]
+
+    # These do not add up for non uniform distribution
+    # No worries, now it does, i forogt to multuply by pdf.
+    print("--")
+    print(output["avg_transfer"], output["avg_externality"])
+    print(np.mean(transfers1[1:]), np.mean(externalities1[1:]))
+    N = 1000
+    print(
+        np.sum(transfers1 * dist.pdf(types), axis=0) / N,
+        np.sum(externalities1 * dist.pdf(types), axis=0) / N,
+    )
+    print("--")
 
     # allocations75, transfers, multiplier, obj = mechanism.solve(tau, prob_state0, 0.75)
     # print("OBJECTIVE 0.75", obj)
@@ -56,18 +72,18 @@ if __name__ == "__main__":
     # pos_iron = virtual_values.positive
     # neg_iron = virtual_values.negative
 
-    taus = [0, 1, 2, 3, 4, 50, 100]
-    for tau in taus:
-        print("TAU", tau)
+    # taus = [0, 1, 2, 3, 4, 50, 100]
+    # for tau in taus:
+    #     print("TAU", tau)
 
-        hyperopt = HyperOpt(mechanism, threshold_types, verbose=10)
-        hyperopt.run(tau, prob_state0)
+    #     hyperopt = HyperOpt(mechanism, threshold_types, verbose=10)
+    #     hyperopt.run(tau, prob_state0)
 
-        fig, ax = plt.subplots()
-        ax.plot(threshold_types, hyperopt.objectives)
-        ax.axvline(x=0.25)
-        ax.axvline(x=0.75)
-        fig.savefig(f"./objectives_{tau}.pdf")
+    #     fig, ax = plt.subplots()
+    #     ax.plot(threshold_types, hyperopt.objectives)
+    #     ax.axvline(x=0.25)
+    #     ax.axvline(x=0.75)
+    #     fig.savefig(f"./objectives_{tau}.pdf")
 
     # # allocations = np.zeros(len(types))
     # # allocations = np.ones(len(types))
@@ -101,13 +117,13 @@ if __name__ == "__main__":
 
     # # transfers = mechanism._allocations_to_transfers(allocations)
 
-    fig, ax = plt.subplots(figsize=(5, 3))
-    ax.plot(types, allocations)
-    ax.plot(types, transfers)
-    prettify(ax=ax)
-    ax.set_xlabel("Allocations")
-    fig.tight_layout()
-    fig.savefig("./allocations.pdf", dpi=300)
+    # fig, ax = plt.subplots(figsize=(5, 3))
+    # ax.plot(types, allocations)
+    # ax.plot(types, transfers)
+    # prettify(ax=ax)
+    # ax.set_xlabel("Allocations")
+    # fig.tight_layout()
+    # fig.savefig("./allocations.pdf", dpi=300)
 
     # def vv(q, i):
     #     v = neg_iron[i] if q <= 0 else pos_iron[i]
@@ -178,16 +194,19 @@ if __name__ == "__main__":
 
     exp_transfers, exp_externality = 0, 0
     externalities = np.zeros(len(allocations))
+    transfers = np.zeros(len(allocations))
 
     from tqdm import tqdm
 
     for i, type in tqdm(enumerate(mechanism.types)):
         if i > 0:
             step = mechanism.types[1] - mechanism.types[0]
-            exp_transfers += (
+            transfer = (
                 allocations[i] * (mechanism.types[i] * mechanism._pdfs[i] + mechanism._cdfs[i])
                 + np.minimum(-allocations[i], 0) * mechanism._pdfs[i]
-            ) * step
+            )
+            transfers[i] = transfer
+            exp_transfers += transfer * step
 
             alpha = tau1 - tj * tau0 - tj * tau1
 
@@ -207,6 +226,16 @@ if __name__ == "__main__":
     exp_transfers, exp_externality
 
     print(exp_transfers, exp_externality, exp_transfers - exp_externality)
+
+    fig, ax = plt.subplots()
+    ax.plot(externalities)
+    ax.plot(externalities1)
+    fig.savefig("./externalities1")
+
+    fig, ax = plt.subplots()
+    ax.plot(transfers)
+    ax.plot(transfers1)
+    fig.savefig("./transfers1")
 
     # fig, ax = plt.subplots(figsize=(5, 3))
     # ax.plot(types, externalities)
