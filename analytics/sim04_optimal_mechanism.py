@@ -84,7 +84,12 @@ def main():
     # a distruiton centred around the middle, and one that is more extreme than above.
     dist = BetaMixture((1, 5), (60, 60), (0.5, 0.5))
 
-    print(dist.pdf(types).sum())
+    dist = Uniform(0, 1)  # (1) uniform
+    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # (1) bergemann
+    dist = BetaMixture([20], [20], [1])  # (2) in the middle
+    dist = BetaMixture([1, 20], [20, 1], [0.5, 0.5])  # (3) at the sides
+
+    print(dist.pdf(types))
 
     fig, ax = plt.subplots(figsize=(4.5, 3))
     ax.plot(types, dist.pdf(types))
@@ -93,7 +98,7 @@ def main():
     prettify(ax=ax)
     fig.savefig(savedir / f"densities.pdf", dpi=300)
 
-    tau = 0.5
+    tau = 100
     prob_state0 = 1
     mechanism = Mechanism(num_types=num_types, dist=dist)
     hyperopt = HyperOpt(mechanism, threshold_types=threshold_types, verbose=100)
