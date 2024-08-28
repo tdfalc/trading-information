@@ -21,13 +21,20 @@ from trading_information.typing import _Floats
 
 def main():
     logger = create_logger(__name__)
-    logger.info("Running expected externality analysis")
+    logger.info("Running sensitivity analysis")
 
-    savedir = Path(__file__).parent / "docs/sim05_expected_externality"
+    savedir = Path(__file__).parent / "docs/sim05_sensitivity_analysis"
     os.makedirs(savedir, exist_ok=True)
 
     num_types = 1000
     threshold_types = np.linspace(0.1, 0.9, 50)
+
+    distributions = {
+        "uniform": Uniform(0, 1),
+        "bimodal": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
+        "low": BetaMixture([80], [20], [1]),
+        "high": BetaMixture([20], [80], [1]),
+    }
 
     dist = Uniform(0, 1)
     dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
@@ -46,19 +53,14 @@ def main():
         all_transfers = np.zeros((num_types, len(taus)))
         all_allocations = np.zeros((num_types, len(taus)))
         for i, tau in enumerate(taus):
-            prob_state0 = 1
+            prob_state0 = 0
             mechanism = Mechanism(num_types=num_types, dist=dist)
-            hyperopt = HyperOpt(mechanism, threshold_types=threshold_types, verbose=100)
-            hyperopt.run(tau, prob_state0)
+            hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
+            hyperopt.run(tau, prob_state0, desc=f"{i}/{len(taus)}")
             threshold_type = hyperopt.best()
             allocations, transfers, externalities, *_ = mechanism.solve(
                 tau, prob_state0, threshold_type
             )
-
-            externalities = mechanism._allocations_to_externalities(
-                allocations, tau=tau, prob_state0=prob_state0
-            )
-            transfers = mechanism._allocations_to_transfers(allocations)
 
             all_externalities[:, i] = externalities
             all_transfers[:, i] = transfers

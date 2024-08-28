@@ -75,21 +75,16 @@ def main():
     types = np.linspace(0, 1, num_types)
     threshold_types = np.linspace(0.1, 0.9, 50)
 
-    dist = Uniform(0, 1)
-    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
-    # dist = BetaMixture((20, 60), (30, 30), (0.99, 0.01))
-    dist = BetaMixture((5, 120), (50, 60), (0.5, 0.5))
-    # dist = Uniform(0.8, 0.9)
-    # try two more types,
-    # a distruiton centred around the middle, and one that is more extreme than above.
-    dist = BetaMixture((1, 5), (60, 60), (0.5, 0.5))
+    tau = 100
+    prob_state0 = 1
 
-    dist = Uniform(0, 1)  # (1) uniform
-    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # (1) bergemann
-    dist = BetaMixture([20], [20], [1])  # (2) in the middle
-    dist = BetaMixture([1, 20], [20, 1], [0.5, 0.5])  # (3) at the sides
+    dist = Uniform(0, 1)  # uniform
+    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
+    dist = BetaMixture([80], [20], [1])  # low
+    dist = BetaMixture([20], [80], [1])  # high
 
-    print(dist.pdf(types))
+    # dist = BetaMixture([2], [7], [1])
+    # dist = stats.norm(0, 0.3)
 
     fig, ax = plt.subplots(figsize=(4.5, 3))
     ax.plot(types, dist.pdf(types))
@@ -98,15 +93,23 @@ def main():
     prettify(ax=ax)
     fig.savefig(savedir / f"densities.pdf", dpi=300)
 
-    tau = 100
-    prob_state0 = 1
     mechanism = Mechanism(num_types=num_types, dist=dist)
-    hyperopt = HyperOpt(mechanism, threshold_types=threshold_types, verbose=100)
-    hyperopt.run(tau, prob_state0)
+    hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
+    hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
     threshold_type = hyperopt.best()
-    print("Best threshold type", threshold_type)
 
-    allocations, transfers, externalities, *_ = mechanism.solve(tau, prob_state0, threshold_type)
+    # fig, ax = plt.subplots(figsize=(4.5, 3))
+    # ax.plot(threshold_types, hyperopt.objectives)
+    # prettify(ax=ax)
+    # fig.savefig(savedir / f"objectives.pdf", dpi=300)
+
+    # logger.info(f"best threshold type: {threshold_type}")
+
+    allocations, transfers, externalities, _, avg_transfer, avg_externality, obj = mechanism.solve(
+        tau, prob_state0, threshold_type
+    )
+
+    print("avg_transfer", avg_transfer, "avg_externality", avg_externality, "objective", obj)
 
     allocations = add_discontinuities(allocations)
     transfers = add_discontinuities(transfers)
@@ -131,10 +134,13 @@ def main():
     externalities = add_discontinuities(externalities, threshold=0.1)
     fig, ax = plt.subplots(figsize=(4.5, 3))
     plot_discontinuous_function(types, externalities, color="black", ax=ax)
+    print(externalities[:10])
     ax.set_ylabel(r"Externality")
     ax.set_xlabel("Private Type ($t_i$)")
     prettify(ax=ax)
     fig.savefig(savedir / f"externalities.pdf", dpi=300)
+
+    from scipy.integrate import trapezoid
 
 
 if __name__ == "__main__":

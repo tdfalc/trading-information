@@ -17,9 +17,15 @@ if __name__ == "__main__":
 
     logger.info("Testing")
 
+    from scipy import stats
+
     # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
     dist = Uniform(0, 1)
-    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
+    dist = stats.norm(0, 0.3)
+    # dist = BetaMixture((20,), (20,), (1,))
+    # dist = BetaMixture([2], [4], [1])
+
+    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
     # from scipy import stats
 
     # # dist = stats.lognorm(s=0.3)
@@ -34,18 +40,26 @@ if __name__ == "__main__":
     mechanism = Mechanism(num_types=1000, dist=dist)
     types = mechanism.types
 
-    tau = 100
+    tau = 0
 
     tau0 = tau1 = tau
     prob_state0 = 1
     tj = prob_state0
-    threshold_type = 0.75
+
+    threshold_types = np.linspace(0.1, 0.9, 30)
+    hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
+    hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
+    threshold_type = hyperopt.best()
+    print("threshold_type", threshold_type)
+
+    print(hyperopt.objectives)
+    # threshold_type = 0.75
 
     alpha = tau1 - tj * (tau0 + tau1)
 
     # print(alpha)
 
-    output = mechanism.solve(tau, prob_state0, threshold_type)
+    output = mechanism.solve(tau, prob_state0, threshold_type, return_dict=True)
     allocations = output["allocations"]
     transfers1 = output["transfers"]
     externalities1 = output["externalities"]
@@ -117,13 +131,34 @@ if __name__ == "__main__":
 
     # # transfers = mechanism._allocations_to_transfers(allocations)
 
-    # fig, ax = plt.subplots(figsize=(5, 3))
-    # ax.plot(types, allocations)
-    # ax.plot(types, transfers)
-    # prettify(ax=ax)
-    # ax.set_xlabel("Allocations")
-    # fig.tight_layout()
-    # fig.savefig("./allocations.pdf", dpi=300)
+    fig, ax = plt.subplots(figsize=(4.5, 3))
+    ax.plot(types, dist.pdf(types))
+    ax.set_ylabel(r"Density")
+    ax.set_xlabel("Private Type ($t_i$)")
+    prettify(ax=ax)
+    fig.savefig("./densities.pdf", dpi=300)
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(types, allocations)
+    # ax.plot(types, externalities1 - transfers1)
+    prettify(ax=ax)
+    ax.set_xlabel("Allocations")
+    fig.tight_layout()
+    fig.savefig("./allocations.pdf", dpi=300)
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(types, externalities1)
+    prettify(ax=ax)
+    ax.set_xlabel("externalities")
+    fig.tight_layout()
+    fig.savefig("./revenues.pdf", dpi=300)
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(types, transfers1)
+    prettify(ax=ax)
+    ax.set_xlabel("transfers")
+    fig.tight_layout()
+    fig.savefig("./transfers.pdf", dpi=300)
 
     # def vv(q, i):
     #     v = neg_iron[i] if q <= 0 else pos_iron[i]
@@ -213,12 +248,7 @@ if __name__ == "__main__":
             externality = mechanism._pdfs[i] * (
                 tau0 * tj
                 + alpha
-                * (
-                    1
-                    - mechanism.types[i]
-                    - mechanism.types[i] * allocations[i]
-                    + (1 - 2 * mechanism.types[i]) * np.minimum(-allocations[i], 0)
-                )
+                * (1 - tj - tj * allocations[i] + (1 - 2 * tj) * np.minimum(-allocations[i], 0))
             )
             externalities[i] = externality
             exp_externality += step * externality
