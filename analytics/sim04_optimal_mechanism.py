@@ -73,15 +73,18 @@ def main():
 
     num_types = 1000
     types = np.linspace(0, 1, num_types)
-    threshold_types = np.linspace(0.1, 0.9, 50)
+    threshold_types = np.linspace(0.1, 0.9, 30)
 
-    tau = 100
+    tau = 0
     prob_state0 = 1
 
+    print("ALPHA", tau * (1 - 2 * prob_state0))
+
     dist = Uniform(0, 1)  # uniform
-    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
-    dist = BetaMixture([80], [20], [1])  # low
-    dist = BetaMixture([20], [80], [1])  # high
+    # dist = stats.expon()
+    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
+    # dist = BetaMixture([80], [20], [1])  # low
+    # dist = BetaMixture([20], [80], [1])  # high
 
     # dist = BetaMixture([2], [7], [1])
     # dist = stats.norm(0, 0.3)
@@ -94,9 +97,11 @@ def main():
     fig.savefig(savedir / f"densities.pdf", dpi=300)
 
     mechanism = Mechanism(num_types=num_types, dist=dist)
-    hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
-    hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
-    threshold_type = hyperopt.best()
+    # hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
+    # hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
+    # threshold_type = hyperopt.best()
+    # print("threshold_type", threshold_type)
+    threshold_type = 0.5
 
     # fig, ax = plt.subplots(figsize=(4.5, 3))
     # ax.plot(threshold_types, hyperopt.objectives)
@@ -105,14 +110,17 @@ def main():
 
     # logger.info(f"best threshold type: {threshold_type}")
 
-    allocations, transfers, externalities, _, avg_transfer, avg_externality, obj = mechanism.solve(
-        tau, prob_state0, threshold_type
+    allocations, transfers, externalities, multiplier, avg_transfer, avg_externality, obj = (
+        mechanism.solve(tau, prob_state0, threshold_type)
     )
+    print(allocations[498:502])
+
+    print("multiplier", multiplier * num_types)
 
     print("avg_transfer", avg_transfer, "avg_externality", avg_externality, "objective", obj)
 
-    allocations = add_discontinuities(allocations)
-    transfers = add_discontinuities(transfers)
+    # allocations = add_discontinuities(allocations)
+    # transfers = add_discontinuities(transfers)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3), sharey=False)
 

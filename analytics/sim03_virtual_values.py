@@ -31,14 +31,28 @@ def main():
     savedir = Path(__file__).parent / "docs/sim03_virtual_values"
     os.makedirs(savedir, exist_ok=True)
 
+    from scipy import stats
+
     experiments = {
         "uniform": Uniform(0, 1),
+        "gaussian": stats.norm(0, 0.3),
+        "expon": stats.expon(),
         "beta_mixture": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
+        "low": BetaMixture([80], [20], [1]),  # low
+        "high": BetaMixture([20], [80], [1]),  # low
     }
+
+    # for uniform distribution, when postive virtual value foes above the negative one,
+    # we sell no information
+
+    # for beta distribution we get a similar phenomianm except part
+    # of the virtual value reminas positiveso we can sell some info
 
     num_types = 1000
     types = np.linspace(0, 1, num_types)
-    alphas = (0, 1, 2, -1, -2)
+    prob_state0 = 1
+    taus = (0, 0.25, 0.5, 0.9, 1)
+    multipliers = (0.5, 0.625, 0.75, 0.95, 1)
 
     for name, dist in experiments.items():
 
@@ -46,9 +60,9 @@ def main():
 
         for i, ax in enumerate(axs.flatten()):
 
-            alpha = alphas[i]
+            tau = taus[i]
 
-            virtuals = VirtualValues(dist, types, alpha, iron=False)
+            virtuals = VirtualValues(dist, types, tau, prob_state0, iron=False)
 
             ax.plot(
                 types,
@@ -65,7 +79,9 @@ def main():
                 label=r"$\phi^{+}$",
             )
 
-            # virtuals = VirtualValues(dist, types, alpha, iron=True)
+            ax.axhline(y=multipliers[i], color="red")
+
+            virtuals = VirtualValues(dist, types, tau, prob_state0, iron=True)
 
             # ax.plot(
             #     types,
@@ -82,18 +98,18 @@ def main():
             #     label=None,
             # )
 
-            if alpha == 0:
+            if tau == 0:
                 title = r"$\alpha=0$"
-            elif alpha == -1:
+            elif tau == -1:
                 title = r"$\alpha=-1$"
-            elif alpha == -2:
+            elif tau == -2:
                 title = r"$\alpha=-2$"
-            elif alpha == 1:
+            elif tau == 1:
                 title = r"$\alpha=1$"
-            elif alpha == 2:
+            elif tau == 2:
                 title = r"$\alpha=2$"
 
-            ax.set_ylim([-3, 2.5])
+            # ax.set_ylim([-3, 2.5])
 
             ax.set_ylabel("Virtual Value")
             ax.set_xlabel("Type ($t_i$)")

@@ -81,3 +81,73 @@ class VirtualValues:
         envelope = convex_envelope(self.types, integral)
 
         return np.gradient(envelope, 1 / len(self.types))
+
+
+class VirtualValues:
+    """Calculate the (ironed) virtual values for a given type distribution"""
+
+    def __init__(
+        self,
+        dist: Distribution,
+        types: _Floats,
+        tau: float,
+        prob_state0: float,
+        iron: Optional[bool] = True,
+    ) -> None:
+        self.dist = dist
+        self.types = types
+        self.tau = tau
+        self.prob_state0 = prob_state0
+        self.alpha = self.tau * (1 - 2 * self.prob_state0)
+        self.iron = iron
+
+        self.pdf = dist.pdf
+        self.cdf = dist.cdf
+
+        self.positive = self._unironed_positive_values()
+        self.negative = self._unironed_negative_values()
+
+    def _unironed_positive_values(self):
+        # return (
+        #     self.types * self.pdf(self.types)
+        #     + self.cdf(self.types)
+        #     - self.pdf(self.types)
+        #     + self.prob_state0 * self.alpha * self.pdf(self.types)
+        # )
+        # return (self.types * (1 - self.alpha) - 1 + self.alpha) * self.pdf(self.types) + self.cdf(
+        #     self.types
+        # )
+        return self.pdf(self.types) * (
+            self.types - 1 - self.alpha * (self.prob_state0 - 1)
+        ) + self.cdf(self.types)
+
+    def _unironed_negative_values(self):
+        # return (
+        #     self.types * self.pdf(self.types)
+        #     + self.cdf(self.types)
+        #     + self.prob_state0 * self.alpha * self.pdf(self.types)
+        #     + self.alpha * (1 - 2 * self.prob_state0) * self.pdf(self.types)
+        # )
+        # return self.types * (1 + self.alpha) * self.pdf(self.types) + self.cdf(self.types)
+        return self.pdf(self.types) * (self.types + self.alpha * self.prob_state0) + self.cdf(
+            self.types
+        )
+
+    # def _ironed_positive_values(self):
+    #     integral = (self.types * (1 - self.alpha) - 1 + self.alpha) * self.cdf(
+    #         self.types
+    #     ) + self.alpha * cumulative_trapezoid(self.cdf(self.types), self.types, initial=0)
+
+    #     return self._iron(integral)
+
+    # def _ironed_negative_values(self):
+    #     integral = self.types * (1 + self.alpha) * self.cdf(
+    #         self.types
+    #     ) - self.alpha * cumulative_trapezoid(self.cdf(self.types), self.types, initial=0)
+
+    #     return self._iron(integral)
+
+    # def _iron(self, integral: _Floats) -> _Floats:
+    #     envelope = convex_envelope(self.types, integral)
+
+    #     return np.gradient(envelope, 1 / len(self.types))

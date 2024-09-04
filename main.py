@@ -40,7 +40,7 @@ if __name__ == "__main__":
     mechanism = Mechanism(num_types=1000, dist=dist)
     types = mechanism.types
 
-    tau = 0
+    tau = 4
 
     tau0 = tau1 = tau
     prob_state0 = 1
@@ -192,32 +192,29 @@ if __name__ == "__main__":
 
     # alpha = tau1 - tj * (tau0 + tau1)
 
-    # theta = 0.001
-    # alls = np.linspace(-1, 1, 100)  # why is this externality not linear?
+    theta = 0.001
+    alls = np.linspace(-1, 1, 100)  # why is this externality not linear?
 
-    # #  because of this, externality cost is not convex
-    # # it is convex for some types but concave for others, so we cannot use toikka!!
+    #  because of this, externality cost is not convex
+    # it is convex for some types but concave for others, so we cannot use toikka!!
 
-    # def externality_for_type(type, x):
+    def externality_for_type(type, x):
+        ps1 = 1 - prob_state0 - prob_state0 * x + (1 - 2 * prob_state0) * np.minimum(0, -x)
+        externality = ps1
+        externality *= 1 - 2 * prob_state0
+        # externality *= prob_state0
+        externality *= tau
 
-    #     ps1 = 1 - type - type * x + (1 - 2 * type) * np.minimum(0, -x)
-    #     externality = 1 - ps1
+        return externality + tau * prob_state0
 
-    #     # externality *= 1 - 2 * tj
-    #     # externality *= tj
-    #     # externality *= tau
-    #     # externality *= dist.pdf(type)
+    exs = externality_for_type(theta, alls)
 
-    #     return externality
-
-    # exs = externality_for_type(theta, alls)
-
-    # fig, ax = plt.subplots(figsize=(5, 3))
-    # ax.plot(alls, exs)
-    # prettify(ax=ax)
-    # ax.set_xlabel("Allocations")
-    # fig.tight_layout()
-    # fig.savefig("./check.png", dpi=200)
+    fig, ax = plt.subplots(figsize=(5, 3))
+    ax.plot(alls, exs)
+    prettify(ax=ax)
+    ax.set_xlabel("Allocations")
+    fig.tight_layout()
+    fig.savefig("./check.png", dpi=200)
 
     # fig, ax = plt.subplots(figsize=(5, 3))
     # ax.plot(types, allocations)
@@ -245,13 +242,11 @@ if __name__ == "__main__":
 
             alpha = tau1 - tj * tau0 - tj * tau1
 
-            externality = mechanism._pdfs[i] * (
-                tau0 * tj
-                + alpha
-                * (1 - tj - tj * allocations[i] + (1 - 2 * tj) * np.minimum(-allocations[i], 0))
+            externality = tau0 * tj + alpha * (
+                1 - tj - tj * allocations[i] + (1 - 2 * tj) * np.minimum(-allocations[i], 0)
             )
             externalities[i] = externality
-            exp_externality += step * externality
+            exp_externality += step * externality * mechanism._pdfs[i]
 
     exp_transfers, exp_externality
 
