@@ -56,7 +56,7 @@ class Mechanism:
     def _convert_increments_to_allocations(self, increments: _Floats) -> _Floats:
         return np.cumsum(increments) - 1
 
-    def solve_increments(self, tau: float, prob_state0: float, threshold_index: int):
+    def solve(self, tau: float, prob_state0: float, threshold_index: int):
 
         with gp.Env(empty=True) as env:
             env.setParam("OutputFlag", 0)
@@ -116,66 +116,6 @@ class Mechanism:
                 multiplier = model.getConstrByName("integral").Pi
 
                 return (
-                    increments.X,
-                    allocations,
-                    transfers,
-                    externalities,
-                    multiplier,
-                    avg_transfer.getValue(),
-                    avg_externality.getValue(),
-                    model.ObjVal,
-                )
-
-    def solve(self, tau: float, prob_state0: float, threshold_index: int):
-
-        with gp.Env(empty=True) as env:
-            env.setParam("OutputFlag", 0)
-            env.start()
-            with gp.Model(env=env) as model:
-
-                allocations = model.addMVar(self.num_intervals, lb=-1, ub=1)
-                model.addConstr(gp.quicksum(allocations) == 0, name="integral")
-
-                avg_transfer, avg_externality = 0, 0
-                for i, midpoint in enumerate(self.midpoints):
-
-                    threshold = self.midpoints[threshold_index]
-
-                    if i > 0:
-                        model.addConstr(allocations[i] >= allocations[i - 1], name="monotonicity")
-
-                    if midpoint <= threshold:
-                        model.addConstr(allocations[i] <= 0)
-
-                    if midpoint >= threshold:
-                        model.addConstr(allocations[i] >= 0)
-
-                    if midpoint >= threshold:
-                        avg_transfer += -allocations[i] * self._pdfs[i]
-                    avg_transfer += allocations[i] * (
-                        self._pdfs[i] * self.midpoints[i] + self._cdfs[i]
-                    )
-
-                    externality = 1 - prob_state0 * (1 + allocations[i])
-                    if midpoint >= threshold:
-                        externality -= (1 - 2 * prob_state0) * allocations[i]
-                    externality *= tau * (1 - 2 * prob_state0)
-                    externality += tau * prob_state0
-                    avg_externality += externality * self._pdfs[i]
-
-                avg_transfer *= self.step
-                avg_externality *= self.step
-
-                model.setObjective(avg_transfer - avg_externality, GRB.MAXIMIZE)
-                model.optimize()
-
-                allocations = allocations.X
-                transfers = self._allocations_to_transfers(allocations)
-                externalities = self._allocations_to_externalities(allocations, tau, prob_state0)
-                multiplier = model.getConstrByName("integral").Pi
-
-                return (
-                    1,
                     allocations,
                     transfers,
                     externalities,

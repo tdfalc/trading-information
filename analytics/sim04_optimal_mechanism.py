@@ -71,37 +71,38 @@ def main():
     savedir = Path(__file__).parent / "docs/sim04_optimal_mechanism"
     os.makedirs(savedir, exist_ok=True)
 
-    num_types = 1000
-    types = np.linspace(0, 1, num_types)
-    threshold_types = np.linspace(0.1, 0.9, 30)
+    num_intervals = 1000
 
-    tau = 0
+    tau = 20
     prob_state0 = 1
 
     print("ALPHA", tau * (1 - 2 * prob_state0))
 
     dist = Uniform(0, 1)  # uniform
     # dist = stats.expon()
-    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
+    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
     # dist = BetaMixture([80], [20], [1])  # low
     # dist = BetaMixture([20], [80], [1])  # high
 
     # dist = BetaMixture([2], [7], [1])
     # dist = stats.norm(0, 0.3)
 
+    mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+    midpoints = mechanism.midpoints
+
     fig, ax = plt.subplots(figsize=(4.5, 3))
-    ax.plot(types, dist.pdf(types))
+    ax.plot(midpoints, dist.pdf(midpoints))
     ax.set_ylabel(r"Density")
     ax.set_xlabel("Private Type ($t_i$)")
     prettify(ax=ax)
     fig.savefig(savedir / f"densities.pdf", dpi=300)
 
-    mechanism = Mechanism(num_types=num_types, dist=dist)
-    # hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
-    # hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
-    # threshold_type = hyperopt.best()
-    # print("threshold_type", threshold_type)
-    threshold_type = 0.5
+    threshold_indices = np.array([100, 200, 300, 400, 500, 600, 700, 800, 900]).astype(int)
+
+    hyperopt = HyperOpt(mechanism, threshold_indices=threshold_indices)
+    hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
+    threshold_index = hyperopt.best()
+    print("threshold_index", threshold_index)
 
     # fig, ax = plt.subplots(figsize=(4.5, 3))
     # ax.plot(threshold_types, hyperopt.objectives)
@@ -111,11 +112,10 @@ def main():
     # logger.info(f"best threshold type: {threshold_type}")
 
     allocations, transfers, externalities, multiplier, avg_transfer, avg_externality, obj = (
-        mechanism.solve(tau, prob_state0, threshold_type)
+        mechanism.solve(tau, prob_state0, threshold_index)
     )
-    print(allocations[498:502])
 
-    print("multiplier", multiplier * num_types)
+    print("multiplier", multiplier * num_intervals)
 
     print("avg_transfer", avg_transfer, "avg_externality", avg_externality, "objective", obj)
 
@@ -124,8 +124,8 @@ def main():
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3), sharey=False)
 
-    plot_discontinuous_function(types, allocations, color="black", ax=ax1)
-    plot_discontinuous_function(types, transfers, color="black", ax=ax2)
+    plot_discontinuous_function(midpoints, allocations, color="black", ax=ax1)
+    plot_discontinuous_function(midpoints, transfers, color="black", ax=ax2)
 
     ax1.set_ylabel(r"Allocation ($\xi_j$)")
     ax2.set_ylabel(r"Transfer ($\pi_j$)")
@@ -141,7 +141,7 @@ def main():
 
     externalities = add_discontinuities(externalities, threshold=0.1)
     fig, ax = plt.subplots(figsize=(4.5, 3))
-    plot_discontinuous_function(types, externalities, color="black", ax=ax)
+    plot_discontinuous_function(midpoints, externalities, color="black", ax=ax)
     print(externalities[:10])
     ax.set_ylabel(r"Externality")
     ax.set_xlabel("Private Type ($t_i$)")
