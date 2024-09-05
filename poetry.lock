@@ -1033,13 +1033,13 @@ files = [
 
 [[package]]
 name = "tfds"
-version = "0.2"
+version = "0.3"
 description = ""
 optional = false
 python-versions = "<3.13,>=3.11"
 files = [
-    {file = "tfds-0.2-py3-none-any.whl", hash = "sha256:4355e0800f53c6e7f517898960e8d613110b14b16ea06f943ad89c950be1b52b"},
-    {file = "tfds-0.2.tar.gz", hash = "sha256:cf5f7a0805f3b9d8a41c21f95b1794be93f2057535e68cd391611da581cb0a9f"},
+    {file = "tfds-0.3-py3-none-any.whl", hash = "sha256:4eb1afeac0ab8020be061cd30dd7b053d2eb4dcf15e58090fe4c2a85d4086d40"},
+    {file = "tfds-0.3.tar.gz", hash = "sha256:37a8013ccf403863ce5c0f65ee77040e6302e8dd4276cd9235cc9933a83e74a5"},
 ]
 
 [package.dependencies]
@@ -1070,4 +1070,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "558f21da737ae7466e296660c2ff7a6ab8496929f427838e3dc5581960a265a7"
+content-hash = "c7c473a268a8aff1a2d67fcfc90f79211bc194772d65cbf62bd4f8a9899cf70b"

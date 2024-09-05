@@ -56,7 +56,7 @@ def main():
 
     for name, dist in experiments.items():
 
-        fig, axs = plt.subplots(1, 5, sharey=True, sharex=True, figsize=(9, 3))
+        fig, axs = plt.subplots(1, 4, sharey=True, sharex=True, figsize=(9, 3))
 
         for i, ax in enumerate(axs.flatten()):
 

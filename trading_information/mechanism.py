@@ -113,7 +113,7 @@ class Mechanism:
                 allocations = self._convert_increments_to_allocations(increments.X)
                 transfers = self._allocations_to_transfers(allocations)
                 externalities = self._allocations_to_externalities(allocations, tau, prob_state0)
-                multiplier = model.getConstrByName("integral").Pi
+                multiplier = model.getConstrByName("integral").Pi * self.num_intervals
 
                 return (
                     allocations,

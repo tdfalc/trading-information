@@ -26,21 +26,19 @@ def main():
     savedir = Path(__file__).parent / "docs/sim05_sensitivity_analysis"
     os.makedirs(savedir, exist_ok=True)
 
-    num_types = 1000
-    threshold_types = np.linspace(0.1, 0.9, 50)
+    num_intervals = 1000
+    threshold_indices = np.arange(100, 900, 1).astype(int)
+    threshold_indices = np.array([500]).astype(int)
 
     distributions = {
         "uniform": Uniform(0, 1),
         "bimodal": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
-        "low": BetaMixture([80], [20], [1]),
-        "high": BetaMixture([20], [80], [1]),
     }
 
     dist = Uniform(0, 1)
-    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
-    # dist = BetaMixture((8, 60), (30, 30), (0.01, 0.99))
-    # dist = Uniform(0.5, 1)
-    taus = np.linspace(0, 10, 50)
+    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
+
+    taus = np.linspace(0, 2, 20)
 
     cache_location = savedir / "cache"
     os.makedirs(cache_location, exist_ok=True)
@@ -49,13 +47,13 @@ def main():
 
     @cache(save_dir=cache_location, use_cache=True)
     def run_experiment():
-        all_externalities = np.zeros((num_types, len(taus)))
-        all_transfers = np.zeros((num_types, len(taus)))
-        all_allocations = np.zeros((num_types, len(taus)))
+        all_externalities = np.zeros((num_intervals, len(taus)))
+        all_transfers = np.zeros((num_intervals, len(taus)))
+        all_allocations = np.zeros((num_intervals, len(taus)))
         for i, tau in enumerate(taus):
             prob_state0 = 0
-            mechanism = Mechanism(num_types=num_types, dist=dist)
-            hyperopt = HyperOpt(mechanism, threshold_types=threshold_types)
+            mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+            hyperopt = HyperOpt(mechanism, threshold_indices=threshold_indices)
             hyperopt.run(tau, prob_state0, desc=f"{i}/{len(taus)}")
             threshold_type = hyperopt.best()
             allocations, transfers, externalities, *_ = mechanism.solve(
@@ -69,7 +67,8 @@ def main():
 
     all_externalities, all_transfers, all_allocations = run_experiment()
 
-    types = np.linspace(0, 1, num_types)
+    mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+    types = mechanism.midpoints
     exp_externalities = np.sum(all_externalities * dist.pdf(types).reshape(-1, 1), axis=0) / 1000
 
     print(dist.pdf(types), np.sum(dist.pdf(types)))

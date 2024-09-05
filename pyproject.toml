@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.13"
-tfds = "^0.2"
+tfds = "0.3"
 scipy = "^1.14.0"
 numpy = "^2.0.1"
 gurobipy = "^11.0.3"
