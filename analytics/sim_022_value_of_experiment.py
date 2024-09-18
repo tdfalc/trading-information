@@ -57,7 +57,7 @@ if __name__ == "__main__":
     os.makedirs(savedir, exist_ok=True)
 
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(9, 3), width_ratios=[1, 2], height_ratios=[1], dpi=300
+        1, 2, figsize=(9, 3), width_ratios=[2, 1], height_ratios=[1], dpi=300
     )
 
     # Value of different experiments to each type
@@ -70,16 +70,16 @@ if __name__ == "__main__":
         exerpiment_values[i, :] = calculate_exerpiment_value(informativeness, types)
 
     cmap = LinearSegmentedColormap.from_list("", ["white", "blue"])
-    im = ax1.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 2, -1, 1])
-    divider = make_axes_locatable(ax1)
+    im = ax2.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 2, -1, 1])
+    divider = make_axes_locatable(ax2)
     cax = divider.append_axes("right", size="5%", pad=0.1)
     cbar = fig.colorbar(im, cmap=cmap, cax=cax)
     cbar.set_label("Value of Experiment ($v_i$)", labelpad=10)
-    ax1.set_xlabel("Private Type ($t_i$)")
-    ax1.set_ylabel(r"Informativeness ($\xi_j$)")
-    ax1.set_xticks((0, 0.5, 1, 1.5, 2))
-    ax1.set_xticklabels(("0.0", "0.25", "0.5", "0.75", "1.0"))
-    prettify(ax=ax1)
+    ax2.set_xlabel("Private Type ($t_i$)")
+    ax2.set_ylabel(r"Informativeness ($\xi_j$)")
+    ax2.set_xticks((0, 0.5, 1, 1.5, 2))
+    # ax2.set_xticklabels((0.0, 0.25, 0.5, 0.75, 1.0))
+    prettify(ax=ax2)
 
     # Dsitribution of actions for fully informative and uninformative experiments
     sample_size = 10000
@@ -96,64 +96,41 @@ if __name__ == "__main__":
     colors = ["black", "magenta"]
 
     handles = []
-    for i, informativeness in enumerate((0, 1 - 1e-9)):
-        edgecolor = (colors[i], 1)
+
+    for i, type in enumerate([0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]):
 
         probs_state1 = state1_probabilities(
-            informativeness,
-            types,
+            informativeness=-0.999,
+            types=np.array([type]),
             sample_size=sample_size,
             state=state,
         )
-        ls = line_styles[i]
-        ax2.scatter(
-            types,
-            xs + (0.00 if i == 1 else 0),
-            s=scatter_scale * (1 - probs_state1),
-            edgecolor=edgecolor,
-            facecolor=facecolor,
-            ls=ls,
-            lw=1.5,
-            zorder=1 - i,
+
+        off = 0.01
+        ax1.bar(x=type - off, height=probs_state1[0], width=0.02, color="magenta", edgecolor="k")
+        ax1.bar(
+            x=type + off, height=1 - probs_state1[0], width=0.02, color="limegreen", edgecolor="k"
         )
 
-        ax2.scatter(
-            types,
-            xs + offset,
-            s=scatter_scale * probs_state1,
-            edgecolor=edgecolor,
-            facecolor=facecolor,
-            ls=ls,
-            lw=1.5,
-            zorder=1 - i,
-        )
+        # ax1.bar(x=type, height=1, width=0.1, color="limegreen", edgecolor="k")
+        # ax1.bar(x=type, height=probs_state1[0], width=0.1, color="magenta", edgecolor="k")
 
-        handles.append(
-            Line2D(
-                [0],
-                [0],
-                color=edgecolor,
-                linestyle=ls,
-                label="Uninformative" if i == 1 else "Fully Informative",
-            )
-        )
+        print(probs_state1)
 
-    ax2.legend(
-        handles=handles,
-        ncol=1,
-        facecolor="#eeeeee",
-        edgecolor="#ffffff",
-        framealpha=0.85,
-        loc="center left",
-        labelspacing=0.25,
-    )
-    ax2.set_yticks((0, offset))
-    ax2.set_ylim((-0.1, offset + 0.1))
-    ax2.set_xlim((-0.08, 1.08))
-    ax2.set_yticklabels((0, 1))
-    ax2.set_ylabel("Action ($a_i$)")
-    ax2.set_xlabel("Private Type ($t_i$)")
-    prettify(ax=ax2)
+        # ax2.scatter(
+        #     types,
+        #     xs + (0.00 if i == 1 else 0),
+        #     s=scatter_scale * (1 - probs_state1),
+        #     edgecolor=edgecolor,
+        #     facecolor=facecolor,
+        #     ls=ls,
+        #     lw=1.5,
+        #     zorder=1 - i,
+        # )
+
+    ax1.set_ylabel("P($a_i$ = 1)")
+    ax1.set_xlabel("Private Type ($t_i$)")
+    prettify(ax=ax1)
 
     fig.tight_layout()
     fig.savefig(savedir / "value.pdf", dpi=300)

@@ -56,9 +56,7 @@ if __name__ == "__main__":
     savedir = Path(__file__).parent / "docs/sim02_value_of_experiment"
     os.makedirs(savedir, exist_ok=True)
 
-    fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(9, 3), width_ratios=[1, 2], height_ratios=[1], dpi=300
-    )
+    fig, ax2 = plt.subplots(figsize=(6, 3), dpi=300)
 
     # Value of different experiments to each type
     num_types = 21
@@ -70,89 +68,17 @@ if __name__ == "__main__":
         exerpiment_values[i, :] = calculate_exerpiment_value(informativeness, types)
 
     cmap = LinearSegmentedColormap.from_list("", ["white", "blue"])
-    im = ax1.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 2, -1, 1])
-    divider = make_axes_locatable(ax1)
+    im = ax2.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 2, -1, 1])
+    # im = ax2.pcolor(exerpiment_values, cmap="jet")
+    # im = ax2.pcolor(exerpiment_values, extent=[0, 2, -1, 1])
+    divider = make_axes_locatable(ax2)
     cax = divider.append_axes("right", size="5%", pad=0.1)
     cbar = fig.colorbar(im, cmap=cmap, cax=cax)
     cbar.set_label("Value of Experiment ($v_i$)", labelpad=10)
-    ax1.set_xlabel("Private Type ($t_i$)")
-    ax1.set_ylabel(r"Informativeness ($\xi_j$)")
-    ax1.set_xticks((0, 0.5, 1, 1.5, 2))
-    ax1.set_xticklabels(("0.0", "0.25", "0.5", "0.75", "1.0"))
-    prettify(ax=ax1)
-
-    # Dsitribution of actions for fully informative and uninformative experiments
-    sample_size = 10000
-    offset = 0.3
-    facecolor = ("w", 0)
-    num_types = 10
-    types = np.linspace(0.01, 0.99, num_types)
-    # colors = get_colors()
-    scatter_scale = 1000
-    xs = np.zeros(len(types))
-    p = (0, (5, 1))
-    line_styles = [p, "solid", "dotted"]
-    state = 0
-    colors = ["black", "magenta"]
-
-    handles = []
-    for i, informativeness in enumerate((0, 1 - 1e-9)):
-        edgecolor = (colors[i], 1)
-
-        probs_state1 = state1_probabilities(
-            informativeness,
-            types,
-            sample_size=sample_size,
-            state=state,
-        )
-        ls = line_styles[i]
-        ax2.scatter(
-            types,
-            xs + (0.00 if i == 1 else 0),
-            s=scatter_scale * (1 - probs_state1),
-            edgecolor=edgecolor,
-            facecolor=facecolor,
-            ls=ls,
-            lw=1.5,
-            zorder=1 - i,
-        )
-
-        ax2.scatter(
-            types,
-            xs + offset,
-            s=scatter_scale * probs_state1,
-            edgecolor=edgecolor,
-            facecolor=facecolor,
-            ls=ls,
-            lw=1.5,
-            zorder=1 - i,
-        )
-
-        handles.append(
-            Line2D(
-                [0],
-                [0],
-                color=edgecolor,
-                linestyle=ls,
-                label="Uninformative" if i == 1 else "Fully Informative",
-            )
-        )
-
-    ax2.legend(
-        handles=handles,
-        ncol=1,
-        facecolor="#eeeeee",
-        edgecolor="#ffffff",
-        framealpha=0.85,
-        loc="center left",
-        labelspacing=0.25,
-    )
-    ax2.set_yticks((0, offset))
-    ax2.set_ylim((-0.1, offset + 0.1))
-    ax2.set_xlim((-0.08, 1.08))
-    ax2.set_yticklabels((0, 1))
-    ax2.set_ylabel("Action ($a_i$)")
     ax2.set_xlabel("Private Type ($t_i$)")
+    ax2.set_ylabel(r"Informativeness ($\xi_j$)")
+    # ax2.set_xticks((0, 0.5, 1, 1.5, 2))
+    ax2.set_xticklabels(("0.0", "0.25", "0.5", "0.75", "1.0"))
     prettify(ax=ax2)
 
     fig.tight_layout()

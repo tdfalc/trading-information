@@ -83,15 +83,15 @@ def main():
             # "threshold_indices": np.arange(100, 900).astype(int),
             "threshold_indices": np.array([100, 500, 900]).astype(int),
         },
-        # "bimodal": {
-        #     "dist": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
-        #     "taus": np.array([0, 1 / 3, 2 / 3, 1, 4 / 3]),
-        #     "threshold_indices": np.arange(400, 600).astype(int),
-        # },
+        "bimodal": {
+            "dist": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
+            "taus": np.array([0, 0.5, 1, 2, 5]),
+            "threshold_indices": np.arange(400, 600).astype(int),
+        },
     }
 
     num_intervals = 1000
-    prob_state0 = 1
+    prob_state0 = 0
 
     for name, experiment in experiments.items():
 
@@ -104,7 +104,7 @@ def main():
         fig, axs = plt.subplots(nrows=4, ncols=len(taus), figsize=(9, 9), sharex=True)
         fig2, axs2 = plt.subplots(nrows=len(taus), ncols=1, figsize=(6, 9))
 
-        mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+        mechanism = Mechanism(num_intervals=num_intervals, dist=dist, lam=1, beta=0.95)
         types = mechanism.midpoints
 
         for i, tau in enumerate(taus):
@@ -132,7 +132,7 @@ def main():
                 multiplier,
                 avg_transfer,
                 avg_externality,
-                _,
+                *_,
             ), hyperopt = _run_experiment()
 
             # Replace discontinuities with NaN values for plotting

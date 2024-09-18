@@ -54,5 +54,5 @@ class HyperOpt:
             )
 
     def best(self) -> float:
-        idx = np.argmax(self._objectives)
+        idx = np.argmin(self._objectives)
         return self.threshold_indices[idx]
