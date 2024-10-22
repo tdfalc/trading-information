@@ -8,14 +8,16 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.lines import Line2D
-from tfds.log import create_logger
-from tfds.plotting import prettify, use_tex
+
+# from tfds.log import create_logger
+# from tfds.plotting import prettify, use_tex
 from matplotlib.axes import Axes
 
-from trading_information.mechanism import Mechanism
+from trading_information.mechanism_basic import Mechanism
 from trading_information.hyperopt import HyperOpt
 from trading_information.distributions import Uniform, BetaMixture
 from trading_information.typing import _Floats
+from trading_information.virtual_values import VirtualValues
 
 
 def add_discontinuities(arr: _Floats, threshold: Optional[float] = None):
@@ -65,8 +67,8 @@ def plot_discontinuous_function(x: _Floats, y: _Floats, color: str, ax: Optional
 
 
 def main():
-    logger = create_logger(__name__)
-    logger.info("Running optimal allocations analysis")
+    # logger = create_logger(__name__)
+    # logger.info("Running optimal allocations analysis")
 
     savedir = Path(__file__).parent / "docs/sim04_optimal_mechanism"
     os.makedirs(savedir, exist_ok=True)
@@ -74,13 +76,13 @@ def main():
     num_intervals = 1000
 
     tau = 20
-    prob_state0 = 1
+    prob_state0 = 0
 
     print("ALPHA", tau * (1 - 2 * prob_state0))
 
     dist = Uniform(0, 1)  # uniform
     # dist = stats.expon()
-    dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
+    # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))  # bimodal
     # dist = BetaMixture([80], [20], [1])  # low
     # dist = BetaMixture([20], [80], [1])  # high
 
@@ -94,14 +96,15 @@ def main():
     ax.plot(midpoints, dist.pdf(midpoints))
     ax.set_ylabel(r"Density")
     ax.set_xlabel("Private Type ($t_i$)")
-    prettify(ax=ax)
+    # prettify(ax=ax)
     fig.savefig(savedir / f"densities.pdf", dpi=300)
 
-    threshold_indices = np.array([100, 200, 300, 400, 500, 600, 700, 800, 900]).astype(int)
+    # threshold_indices = np.array([1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 999]).astype(int)
 
-    hyperopt = HyperOpt(mechanism, threshold_indices=threshold_indices)
-    hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
-    threshold_index = hyperopt.best()
+    # hyperopt = HyperOpt(mechanism, threshold_indices=threshold_indices)
+    # hyperopt.run(tau, prob_state0, desc=f"Hyperopt")
+    # threshold_index = hyperopt.best()
+    threshold_index = 500
     print("threshold_index", threshold_index)
 
     # fig, ax = plt.subplots(figsize=(4.5, 3))
@@ -114,41 +117,78 @@ def main():
     allocations, transfers, externalities, multiplier, avg_transfer, avg_externality, obj = (
         mechanism.solve(tau, prob_state0, threshold_index)
     )
+    print("actual multuplier", multiplier)
+    multiplier *= -1
+    # multiplier /= tau
+    multiplier = 10.5
 
-    print("multiplier", multiplier * num_intervals)
+    (
+        allocations_vv,
+        transfers_vv,
+        externalities_vv,
+        multiplier_vv,
+        avg_transfer_vv,
+        avg_externality_vv,
+        obj_vv,
+    ) = mechanism.solve_virtuals(tau, prob_state0, threshold_index, multi=multiplier)
+
+    # for m in np.linspace(0, 20, 20):
+    #     (
+    #         *_,
+    #         o,
+    #     ) = mechanism.solve_virtuals(tau, prob_state0, threshold_index, multi=m)
+    #     print(m, o)
+
+    print("multiplier", multiplier)
+    print("multiplier_vv", multiplier_vv)
 
     print("avg_transfer", avg_transfer, "avg_externality", avg_externality, "objective", obj)
+    print(
+        "avg_transfer_vv",
+        avg_transfer_vv,
+        "avg_externality_vv",
+        avg_externality_vv,
+        "objective_vv",
+        obj_vv,
+    )
 
     # allocations = add_discontinuities(allocations)
     # transfers = add_discontinuities(transfers)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3), sharey=False)
-
-    plot_discontinuous_function(midpoints, allocations, color="black", ax=ax1)
-    plot_discontinuous_function(midpoints, transfers, color="black", ax=ax2)
-
-    ax1.set_ylabel(r"Allocation ($\xi_j$)")
-    ax2.set_ylabel(r"Transfer ($\pi_j$)")
-
-    ax1.set_ylim((-1.1, 1.1))
-    ax2.set_ylim((-0.01, 0.26))
-
-    for ax in (ax1, ax2):
-        ax.set_xlabel("Private Type ($t_i$)")
-        prettify(ax=ax)
-
+    fig, ax = plt.subplots(figsize=(4.5, 3), sharey=False)
+    ax.plot(midpoints, allocations, color="k")
+    ax.set_ylabel(r"Allocation ($\xi_j$)")
+    ax.set_xlabel("Private Type ($t_i$)")
+    fig.tight_layout()
     fig.savefig(savedir / f"mechanism.pdf", dpi=300)
 
-    externalities = add_discontinuities(externalities, threshold=0.1)
-    fig, ax = plt.subplots(figsize=(4.5, 3))
-    plot_discontinuous_function(midpoints, externalities, color="black", ax=ax)
-    print(externalities[:10])
-    ax.set_ylabel(r"Externality")
+    fig, ax = plt.subplots(figsize=(4.5, 3), sharey=False)
+    ax.plot(midpoints, allocations_vv, color="k")
+    ax.set_ylabel(r"Allocation ($\xi_j$)")
     ax.set_xlabel("Private Type ($t_i$)")
-    prettify(ax=ax)
-    fig.savefig(savedir / f"externalities.pdf", dpi=300)
+    fig.tight_layout()
+    fig.savefig(savedir / f"mechanism_vv.pdf", dpi=300)
 
-    from scipy.integrate import trapezoid
+    fig, ax = plt.subplots(figsize=(4.5, 3))
+    virtuals = VirtualValues(dist, midpoints, tau, prob_state0, iron=False)
+    ax.plot(
+        midpoints,
+        virtuals.negative,
+        color="k",
+        ls="solid",
+        label=r"$\phi^{-}$",
+    )
+    ax.plot(
+        midpoints,
+        virtuals.positive,
+        color="k",
+        ls="dashed",
+        label=r"$\phi^{+}$",
+    )
+    ax.axhline(y=multiplier, color="red")
+    ax.set_ylabel("Virtual Value")
+    fig.tight_layout()
+    fig.savefig(savedir / f"virtuals.pdf", dpi=300)
 
 
 if __name__ == "__main__":

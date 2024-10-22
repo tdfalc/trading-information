@@ -85,13 +85,47 @@ def main():
         },
         "bimodal": {
             "dist": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
-            "taus": np.array([0, 0.5, 1, 2, 5]),
+            "taus": np.array([0, 1 / 3, 2 / 3, 1, 4 / 3]),
+            "threshold_indices": np.arange(400, 600).astype(int),
+        },
+        "bimodal_2": {
+            "dist": BetaMixture((30, 30), (8, 60), (0.5, 0.5)),
+            # "taus": np.array([10, 20, 30, 40, 50]),
+            # "taus": np.array([0, 1, 5, 10, 50]),
+            "taus": np.array([0, 1 / 3, 2 / 3, 1, 4 / 3]),
+            "threshold_indices": np.arange(400, 600).astype(int),
+        },
+    }
+
+    experiments = {
+        "uniform": {
+            "dist": Uniform(0, 1),
+            "taus": np.array([0, 1 / 3, 2 / 3, 1, 4 / 3]),
+            # "threshold_indices": np.arange(100, 900).astype(int),
+            "threshold_indices": np.array([100, 500, 900]).astype(int),
+        },
+        # "bimodal": {
+        #     "dist": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
+        #     "taus": np.array([0, 1 / 3, 2 / 3, 1, 4 / 3]),
+        #     "threshold_indices": np.arange(40, 60).astype(int),
+        # },
+        # "bimodal": {
+        #     "dist": BetaMixture((20, 70), (70, 20), (0.2, 0.8)),
+        #     "taus": np.array([0, 1 / 3, 1, 5, 10]),
+        #     "threshold_indices": np.arange(40, 60).astype(int),
+        # },
+        "bimodal_2": {
+            "dist": BetaMixture((20, 70), (30, 15), (0.5, 0.5)),
+            # "taus": np.array([10, 20, 30, 40, 50]),
+            # "taus": np.array([0, 1, 5, 10, 50]),
+            # "taus": np.array([10, 20, 50, 100, 200]),
+            "taus": np.array([0, 0.2, 1 / 3, 0.6, 2]),
             "threshold_indices": np.arange(400, 600).astype(int),
         },
     }
 
     num_intervals = 1000
-    prob_state0 = 0
+    prob_state0 = 0.0001
 
     for name, experiment in experiments.items():
 
@@ -107,6 +141,13 @@ def main():
         mechanism = Mechanism(num_intervals=num_intervals, dist=dist, lam=1, beta=0.95)
         types = mechanism.midpoints
 
+        fig3, ax = plt.subplots(figsize=(4.5, 3))
+        ax.plot(mechanism.midpoints, dist.pdf(mechanism.midpoints))
+        ax.set_ylabel(r"Density")
+        ax.set_xlabel("Private Type ($t_i$)")
+        prettify(ax=ax)
+        fig3.savefig(savedir / f"pdf_{name}.pdf", dpi=300)
+
         for i, tau in enumerate(taus):
 
             cache_location = savedir / f"cache"
@@ -121,6 +162,7 @@ def main():
                 threshold_index = hyperopt.best()
 
                 # Solve optimal mechanism
+
                 output = mechanism.solve(tau, prob_state0, threshold_index)
 
                 return output, hyperopt
@@ -134,6 +176,18 @@ def main():
                 avg_externality,
                 *_,
             ), hyperopt = _run_experiment()
+
+            print(i, "AVG_TRANSFER", avg_transfer)
+            from scipy.integrate import trapezoid
+
+            print(
+                "AVG_TRANSFER2",
+                trapezoid(transfers * dist.pdf(mechanism.midpoints), x=mechanism.midpoints),
+            )
+            print(
+                "AVG_EXTER2",
+                trapezoid(externalities * dist.pdf(mechanism.midpoints), x=mechanism.midpoints),
+            )
 
             # Replace discontinuities with NaN values for plotting
             allocations = add_discontinuities(allocations)
@@ -192,7 +246,9 @@ def main():
             ax.axhline(y=avg_externality, color="blue", ls="dashed")
             prettify(ax=ax)
 
-            print(tau, avg_externality)
+            # print(tau, avg_externality)
+            print("--")
+            print(" ")
 
         fig.tight_layout()
         fig.savefig(savedir / f"mechanism_{name}.pdf", dpi=300)

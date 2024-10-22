@@ -32,7 +32,10 @@ def tqdm_joblib(tqdm_object):
 class HyperOpt:
 
     def __init__(
-        self, mechanism: Mechanism, threshold_indices: _Ints, n_jobs: Optional[int] = None
+        self,
+        mechanism: Mechanism,
+        threshold_indices: _Ints,
+        n_jobs: Optional[int] = None,
     ):
         self.mechanism = mechanism
         self.threshold_indices = threshold_indices
@@ -44,7 +47,9 @@ class HyperOpt:
         return self._objectives
 
     def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
-        solve = functools.partial(self.mechanism.solve, tau=tau, prob_state0=prob_state0)
+        solve = functools.partial(
+            self.mechanism.solve, tau=tau, prob_state0=prob_state0
+        )
         with tqdm_joblib(tqdm(desc=desc, total=len(self.threshold_indices))) as _:
             *_, self._objectives = zip(
                 *Parallel(n_jobs=self.n_jobs)(
@@ -54,5 +59,5 @@ class HyperOpt:
             )
 
     def best(self) -> float:
-        idx = np.argmin(self._objectives)
+        idx = np.argmax(self._objectives)
         return self.threshold_indices[idx]

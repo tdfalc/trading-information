@@ -108,8 +108,8 @@ class VirtualValues:
         self.negative = self._unironed_negative_values()
 
         if self.iron:
-            self.positive = self._ironed_positive_values()
-            self.negative = self._ironed_negative_values()
+            self.positive = np.maximum(0, self._ironed_positive_values())
+            self.negative = np.maximum(0, self._ironed_negative_values())
         else:
             self.positive = self._unironed_positive_values()
             self.negative = self._unironed_negative_values()
