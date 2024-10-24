@@ -40,43 +40,6 @@ class Mechanism(BaseModel):
 
         return values
 
-
-class Mechanism:
-    def __init__(self, num_intervals: int, dist: Distribution) -> None:
-
-        self.num_intervals = num_intervals
-        self.dist = dist
-
-        self.types = np.linspace(0, 1, self.num_intervals + 1)
-        self.step = 1 / self.num_intervals
-        self.midpoints = (self.types[:-1] + self.types[1:]) / 2
-
-        # Precompute density function evaluation for each midpoint type
-        self._pdfs = self.dist.pdf(self.midpoints)
-        self._cdfs = self.dist.cdf(self.midpoints)
-
-    def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
-        return (
-            self.midpoints * allocations
-            + np.minimum(-allocations, 0)
-            - np.cumsum(allocations) / self.num_intervals
-        )
-
-
-class Mechanism:
-    def __init__(self, num_intervals: int, dist: Distribution) -> None:
-
-        self.num_intervals = num_intervals
-        self.dist = dist
-
-        self.types = np.linspace(0, 1, self.num_intervals + 1)
-        self.step = 1 / self.num_intervals
-        self.midpoints = (self.types[:-1] + self.types[1:]) / 2
-
-        # Precompute density function evaluation for each midpoint type
-        self._pdfs = self.dist.pdf(self.midpoints)
-        self._cdfs = self.dist.cdf(self.midpoints)
-
     def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
         return (
             self.midpoints * allocations
