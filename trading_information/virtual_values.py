@@ -39,6 +39,9 @@ class VirtualValues(BaseModel):
     prob_state0: float
     iron: Optional[bool] = True
 
+    class Config:
+        arbitrary_types_allowed = True
+
     # The positive and negative properties are computed based on whether `iron` is True
     @property
     def positive(self):
@@ -51,7 +54,7 @@ class VirtualValues(BaseModel):
     @classmethod
     def get_ironed_values(cls, dist: Distribution, types: _Floats, tau: float, prob_state0: float):
         """Convenience function to simply get ironed virtual values."""
-        virtual_values = cls(dist, types, tau, prob_state0, iron=True)
+        virtual_values = cls(dist=dist, types=types, tau=tau, prob_state0=prob_state0, iron=True)
         return virtual_values.positive, virtual_values.negative
 
     def _unironed_positive_values(self):

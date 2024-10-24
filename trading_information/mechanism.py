@@ -1,5 +1,3 @@
-from typing import Callable, Tuple, Optional
-
 import gurobipy as gp
 from gurobipy import GRB
 import numpy as np
@@ -13,11 +11,13 @@ from trading_information.virtual_values import VirtualValues
 class Mechanism(BaseModel):
     num_intervals: int
     dist: Distribution
-    types: np.ndarray = Field(init=False)
-    step: float = Field(init=False)
-    midpoints: np.ndarray = Field(init=False)
-    _pdfs: np.ndarray = Field(init=False)
-    _cdfs: np.ndarray = Field(init=False)
+    _step: float = Field(init=False)
+    _midpoints: _Floats = Field(init=False)
+    _pdfs: _Floats = Field(init=False)
+    _cdfs: _Floats = Field(init=False)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @root_validator(pre=False)
     def compute_derived_values(cls, values):
@@ -32,13 +32,16 @@ class Mechanism(BaseModel):
         pdfs = dist.pdf(midpoints)
         cdfs = dist.cdf(midpoints)
 
-        values["types"] = types
-        values["step"] = step
-        values["midpoints"] = midpoints
+        values["_step"] = step
+        values["_midpoints"] = midpoints
         values["_pdfs"] = pdfs
         values["_cdfs"] = cdfs
 
         return values
+
+    @property
+    def midpoints(self) -> _Floats:
+        return self._midpoints
 
     def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
         return (
@@ -104,7 +107,7 @@ class Mechanism(BaseModel):
                 # add them in we can sanity check the objective function value. Can delete.
                 avg_transfer -= (self.midpoints * self._pdfs + self._cdfs).sum()
                 avg_transfer += self._pdfs[self.midpoints >= threshold].sum()
-                avg_transfer *= self.step
+                avg_transfer *= self._step
 
                 avg_externality += (1 - 2 * prob_state0) * self._pdfs[
                     self.midpoints >= threshold
@@ -112,7 +115,7 @@ class Mechanism(BaseModel):
                 avg_externality += self._pdfs.sum()
                 avg_externality *= tau * (1 - 2 * prob_state0)
                 avg_externality += tau * prob_state0 * self._pdfs.sum()
-                avg_externality *= self.step
+                avg_externality *= self._step
 
                 model.setObjective((avg_transfer - avg_externality), GRB.MAXIMIZE)
                 model.optimize()
@@ -156,7 +159,7 @@ class Mechanism(BaseModel):
 
                 #  Get positive and negative ironed virtual values
                 positive, negative = VirtualValues.get_ironed_values(
-                    self.dist, self.midpoints, tau, prob_state0
+                    dist=self.dist, types=self.midpoints, tau=tau, prob_state0=prob_state0
                 )
 
                 # Lagrange objective not necessarily equal to difference between average transfer and average externality
@@ -176,7 +179,7 @@ class Mechanism(BaseModel):
                     # Compute actual transfer
                     transfer = midpoint * allocations[i]
                     transfer -= allocations[i] * binaries[i]
-                    transfer -= gp.quicksum(allocations[:i] * self.step)
+                    transfer -= gp.quicksum(allocations[:i] * self._step)
 
                     # Compute actual externality
                     externality = 1 - prob_state0 * (1 + allocations[i])
@@ -185,8 +188,8 @@ class Mechanism(BaseModel):
                     externality += tau * prob_state0
 
                     # Update average values
-                    avg_transfer += transfer * self.step * self._pdfs[i]
-                    avg_externality += externality * self.step * self._pdfs[i]
+                    avg_transfer += transfer * self._step * self._pdfs[i]
+                    avg_externality += externality * self._step * self._pdfs[i]
 
                     # M = 1000
                     # if i > 0 & pooling_constraint:
@@ -201,7 +204,7 @@ class Mechanism(BaseModel):
                     #         binaries2[i], 1, allocations[i] - allocations[i - 1] == 0
                     #     )
 
-                model.setObjective(lagrangian * self.step, GRB.MAXIMIZE)
+                model.setObjective(lagrangian * self._step, GRB.MAXIMIZE)
                 model.optimize()
 
                 allocations = allocations.X
@@ -215,8 +218,8 @@ class Mechanism(BaseModel):
                     multiplier,
                     avg_transfer.getValue(),
                     avg_externality.getValue(),
-                    model.ObjVal,
                     binaries.X,
-                    virtual_value.X,
+                    virtual_values.X,
                     binaries2.X,
+                    model.ObjVal,
                 )

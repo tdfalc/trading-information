@@ -8,7 +8,7 @@ import joblib
 from tqdm import tqdm
 
 from trading_information.mechanism import Mechanism
-from trading_information.typing import _Ints
+from trading_information.typing import _Ints, _Floats
 
 
 @contextlib.contextmanager
@@ -48,7 +48,7 @@ class HyperOpt:
 
     def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
         solve = functools.partial(
-            self.mechanism.solve, tau=tau, prob_state0=prob_state0
+            self.mechanism.solve_with_increments, tau=tau, prob_state0=prob_state0
         )
         with tqdm_joblib(tqdm(desc=desc, total=len(self.threshold_indices))) as _:
             *_, self._objectives = zip(
@@ -61,3 +61,37 @@ class HyperOpt:
     def best(self) -> float:
         idx = np.argmax(self._objectives)
         return self.threshold_indices[idx]
+
+
+class HyperOptVirtuals:
+
+    def __init__(
+        self,
+        mechanism: Mechanism,
+        multipliers: _Floats,
+        n_jobs: Optional[int] = None,
+    ):
+        self.mechanism = mechanism
+        self.multipliers = multipliers
+        self.n_jobs = n_jobs if n_jobs is not None else -1
+        self._objectives = None
+
+    @property
+    def objectives(self):
+        return self._objectives
+
+    def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
+        solve = functools.partial(
+            self.mechanism.solve_with_virtuals, tau=tau, prob_state0=prob_state0
+        )
+        with tqdm_joblib(tqdm(desc=desc, total=len(self.multipliers))) as _:
+            *_, self._objectives = zip(
+                *Parallel(n_jobs=self.n_jobs)(
+                    delayed(solve)(multiplier=multiplier)
+                    for multiplier in self.multipliers
+                )
+            )
+
+    def best(self) -> float:
+        idx = np.argmin(self._objectives)
+        return self.multipliers[idx]
