@@ -48,6 +48,12 @@ class VirtualValues(BaseModel):
     def negative(self):
         return self._ironed_negative_values() if self.iron else self._unironed_negative_values()
 
+    @classmethod
+    def get_ironed_values(cls, dist: Distribution, types: _Floats, tau: float, prob_state0: float):
+        """Convenience function to simply get ironed virtual values."""
+        virtual_values = cls(dist, types, tau, prob_state0, iron=True)
+        return virtual_values.positive, virtual_values.negative
+
     def _unironed_positive_values(self):
         alpha = self.tau * (1 - 2 * self.prob_state0)
         return self.dist.pdf(self.types) * (
