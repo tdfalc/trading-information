@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union, Sequence
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, Field, root_validator
@@ -51,9 +51,9 @@ class Uniform(Distribution):
 class BetaMixture(Distribution):
     """Mixture of beta distributions with specified weights."""
 
-    alphas: _Floats
-    betas: _Floats
-    weights: _Floats
+    alphas: Union[Sequence[float], _Floats]
+    betas: Union[Sequence[float], _Floats]
+    weights: Union[Sequence[float], _Floats]
     _dists: List[stats.rv_continuous] = Field(init=False)
 
     @root_validator(pre=False)

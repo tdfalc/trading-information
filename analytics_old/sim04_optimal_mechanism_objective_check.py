@@ -123,14 +123,6 @@ def main():
 
     fig.savefig(savedir / "obj.pdf")
 
-    q = -0.5
-    pdf = dist.pdf(midpoints)
-    pdf_grad = np.gradient(pdf, midpoints)
-
-    fig, ax = plt.subplots()
-    ax.plot(midpoints * pdf_grad + 2 * pdf)
-    fig.savefig(savedir / "grad.pdf")
-
 
 if __name__ == "__main__":
     main()

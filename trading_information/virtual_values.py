@@ -72,13 +72,13 @@ class VirtualValues(BaseModel):
     def _ironed_positive_values(self):
         alpha = self.tau * (1 - 2 * self.prob_state0)
         integral = self.dist.cdf(self.types) * (self.types + alpha * (1 - self.prob_state0) - 1)
-        return self._iron(integral)
+        return self._do_the_ironing(integral)
 
     def _ironed_negative_values(self):
         alpha = self.tau * (1 - 2 * self.prob_state0)
         integral = self.dist.cdf(self.types) * (self.types + alpha * self.prob_state0)
-        return self._iron(integral)
+        return self._do_the_ironing(integral)
 
-    def _iron(self, integral: _Floats) -> _Floats:
+    def _do_the_ironing(self, integral: _Floats) -> _Floats:
         envelope = convex_envelope(self.types, integral)
         return np.gradient(envelope, 1 / len(self.types))
