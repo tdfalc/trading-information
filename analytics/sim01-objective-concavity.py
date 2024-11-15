@@ -104,12 +104,12 @@ def main():
     num_intervals = 1000
 
     dist = BetaMixture(alphas=(8, 60), betas=(30, 30), weights=(0.5, 0.5))  # bimodal
-    # dist = Uniform(low=0, high=1)  # uniform
+    dist = Uniform(low=0, high=1)  # uniform
 
     mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
     midpoints = mechanism.midpoints
 
-    fig, ax = plt.subplots(figsize=(4.5, 3))
+    fig, ax = plt.subplots(figsize=(8, 3))
     allocations = np.linspace(-1, 1, 100)
 
     positive, negative = VirtualValues.get_ironed_values(
@@ -136,59 +136,135 @@ def main():
     #     np.minimum(allocations, 0) * negative[i] + np.maximum(allocations, 0) * positive[i]
     # )
     #     ax.plot(allocations, virtual_values, label=i)
-    taus = np.linspace(0, 2, 10)
+
+    prob_state0s = np.linspace(0.99, 1, 10)
+    taus = np.linspace(0, 10, 10)
 
     norm = mpl.colors.Normalize(vmin=0, vmax=np.max(taus))
     cmap = cm.get_cmap("viridis")
     m = cm.ScalarMappable(norm=norm, cmap=cmap)
 
-    for tau in taus:
-        i = 0
-        positive, negative = VirtualValues.get_ironed_values(
-            dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0
-        )
-        virtual_values = (
-            np.minimum(allocations, 0) * negative[i] + np.maximum(allocations, 0) * positive[i]
-        )
-        ax.plot(allocations, virtual_values, label=i, color=m.to_rgba(tau), zorder=1)
+    def check_convexity(y_values, tolerance=1e-8):
+        """
+        Checks if a function is convex, concave, or neither based on its y-values.
 
-    positive, negative = VirtualValues.get_ironed_values(
-        dist=dist, types=midpoints, tau=1, prob_state0=prob_state0
-    )
-    virtual_values = (
-        np.minimum(allocations, 0) * negative[i] + np.maximum(allocations, 0) * positive[i]
-    )
-    ax.plot(allocations, virtual_values, label=1, color="red", zorder=1, ls="dashed")
+        Parameters:
+        - y_values (numpy.ndarray): Array of function values at equally spaced x-values.
+        - tolerance (float): Numerical tolerance for floating-point comparisons.
 
-    mask = allocations >= 0
-    ax.plot(allocations[mask], virtual_values[mask], color="white", ls="solid", zorder=2)
-    ax.plot(allocations[mask], virtual_values[mask], color="k", ls="dashed", zorder=3)
+        Returns:
+        - str: 'convex', 'concave', or 'neither'
+        """
+        # Compute first differences (approximate first derivative)
+        first_diff = np.diff(y_values)
+
+        # Compute second differences (approximate second derivative)
+        second_diff = np.diff(first_diff)
+
+        # Check for convexity
+        if np.all(second_diff >= -tolerance):
+            return 1
+        # Check for concavity
+        elif np.all(second_diff <= tolerance):
+            return 0
+        else:
+            return 0
+
+    # objectives = np.zeros(())
+
+    # for prob_state0 in prob_state0s
+    # prob_state0 = 1
+    # prob_state0s = np.linspace(0, 1, 21)
+    # taus = np.linspace(-10, 10, 21)
+
+    # values = np.zeros((len(allocations), len(taus)))
+
+    # is_convex = np.zeros((len(prob_state0s), len(taus)))
+    # from tqdm import tqdm
+
+    # for i, prob_state0 in tqdm(enumerate(prob_state0s)):
+    #     # prob_state0 = 1
+    #     for j, tau in enumerate(taus):
+    #         positive, negative = VirtualValues.get_ironed_values(
+    #             dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0
+    #         )
+    #         virtual_values = (
+    #             np.minimum(allocations, 0) * negative[i] + np.maximum(allocations, 0) * positive[i]
+    #         )
+    #         is_convex[i, j] = check_convexity(virtual_values)
+
+    # #     colors = np.where(is_convex[i].flatten() == 1, "green", "red")
+    # #     ax.scatter([prob_state0] * len(taus), taus, c=colors)
+    # #     ax.set_xlabel("Probstate0")
+    # #     ax.set_ylabel("Tau")
+    # # fig.tight_layout()
+    # # print(is_convex)
+
+    # ax.imshow(
+    #     is_convex.T[::-1],
+    #     aspect="auto",
+    #     interpolation="nearest",
+    #     cmap="Set1",
+    #     extent=(0, 1, np.min(taus), np.max(taus)),
+    # )
+    # ax.set_xticks
+    # prob_state0 = 0.6
+    # for tau in taus:
+    #     i = 0
+    #     vvs = VirtualValues(
+    #         dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0, iron=False
+    #     )
+    #     positive, negative = vvs.positive, vvs.negative
+    #     # positive, negative = VirtualValues.get_ironed_values(
+    #     #     dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0
+    #     # )
+    #     virtual_values = (
+    #         np.minimum(allocations, 0) * negative[i]
+    #         + np.maximum(allocations, 0) * positive[i]
+    #         # - 0.5 * allocations
+    #     )
+    #     ax.plot(allocations, virtual_values, label=i, color=m.to_rgba(tau), zorder=1)
+
+    # positive, negative = VirtualValues.get_ironed_values(
+    #     dist=dist, types=midpoints, tau=1, prob_state0=prob_state0
+    # )
+    # virtual_values = (
+    #     np.minimum(allocations, 0) * negative[i] + np.maximum(allocations, 0) * positive[i]
+    # )
+    # ax.plot(allocations, virtual_values, label=1, color="red", zorder=1, ls="dashed")
+
+    # mask = allocations >= 0
+    # ax.plot(allocations[mask], virtual_values[mask], color="white", ls="solid", zorder=2)
+    # ax.plot(allocations[mask], virtual_values[mask], color="k", ls="dashed", zorder=3)
 
     # ax.legend()
     # best_idx = np.argmax(virtual_values)
     # ax.scatter([allocations[best_idx]], [virtual_values[best_idx]])
+    # ist = BetaMixture(alphas=(8, 60), betas=(30, 30), weights=(0.5, 0.5))  # bimodal
+
+    prob_state0 = 0.8
+    tau = 2
     fig.savefig(savedir / "concavity.pdf")
 
-    # fig, ax = plt.subplots(figsize=(4.5, 3))
-    # virtual_values = VirtualValues(
-    #     dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0, iron=True
-    # )
-    # ax.plot(
-    #     midpoints,
-    #     virtual_values.negative,
-    #     color="k",
-    #     ls="solid",
-    #     label=r"$\phi^{-}$",
-    # )
+    fig, ax = plt.subplots(figsize=(4.5, 3))
+    virtual_values = VirtualValues(
+        dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0, iron=True
+    )
+    ax.plot(
+        midpoints,
+        virtual_values.negative,
+        color="k",
+        ls="solid",
+        label=r"$\phi^{-}$",
+    )
 
-    # ax.plot(
-    #     midpoints,
-    #     virtual_values.positive,
-    #     color="blue",
-    #     ls="solid",
-    #     label=r"$\phi^{+}$",
-    # )
-    # ax.legend()
+    ax.plot(
+        midpoints,
+        virtual_values.positive,
+        color="blue",
+        ls="solid",
+        label=r"$\phi^{+}$",
+    )
 
     # virtual_values = VirtualValues(
     #     dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0, iron=False
@@ -207,13 +283,49 @@ def main():
     #     ls="dashed",
     #     label=r"$\phi^{-}$",
     # )
-    # # ax2 = ax.twinx()
-    # # ax2.plot(midpoints, allocations, color="red")
+
+    virtual_values = VirtualValues(
+        dist=dist, types=midpoints, tau=tau, prob_state0=prob_state0, iron=True
+    )
+
+    i, j = 250, 750
+    ax.fill_between(
+        midpoints[:i],
+        virtual_values.negative[:i],
+        virtual_values.positive[:i],
+        color="y",
+        alpha=0.3,
+    )
+    ax.fill_between(
+        midpoints[i:j],
+        virtual_values.negative[i:j],
+        virtual_values.positive[i:j],
+        color="b",
+        alpha=0.3,
+    )
+    ax.fill_between(
+        midpoints[j:],
+        virtual_values.negative[j:],
+        virtual_values.positive[j:],
+        color="y",
+        alpha=0.3,
+    )
+
+    # ax.fill_between(midpoints[:250], 2, -1, color="y", alpha=0.3)
+    # ax.fill_between(midpoints[250:750], 2, -1, color="b", alpha=0.3)
+    # ax.fill_between(midpoints[750:], 2, -1, color="y", alpha=0.3)
+
+    ax.axhline(y=0.05, color="red", label="$\lambda$")
+    ax.axvline(x=i / 1000, color="k", ls="dashed")
+    ax.axvline(x=j / 1000, color="k", ls="dashed")
+    ax.legend()
+    # ax2 = ax.twinx()
+    # ax2.plot(midpoints, allocations, color="red")
     # ax.set_ylim(top=10, bottom=-5)
 
-    # ax.set_ylabel("Virtual Value")
-    # fig.tight_layout()
-    # fig.savefig(savedir / f"virtuals.pdf", dpi=300)
+    ax.set_ylabel("Virtual Value")
+    fig.tight_layout()
+    fig.savefig(savedir / f"virtuals.pdf", dpi=300)
 
 
 if __name__ == "__main__":
