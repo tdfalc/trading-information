@@ -56,7 +56,7 @@ if __name__ == "__main__":
     savedir = Path(__file__).parent / "docs/sim02_value_of_experiment"
     os.makedirs(savedir, exist_ok=True)
 
-    fig, ax2 = plt.subplots(figsize=(6, 3), dpi=300)
+    fig, ax2 = plt.subplots(figsize=(6.5, 3), dpi=300)
 
     # Value of different experiments to each type
     num_types = 21
@@ -68,17 +68,19 @@ if __name__ == "__main__":
         exerpiment_values[i, :] = calculate_exerpiment_value(informativeness, types)
 
     cmap = LinearSegmentedColormap.from_list("", ["white", "blue"])
-    im = ax2.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 2, -1, 1])
+    cmap = "Blues"
+    im = ax2.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 4, -1, 1])
     # im = ax2.pcolor(exerpiment_values, cmap="jet")
     # im = ax2.pcolor(exerpiment_values, extent=[0, 2, -1, 1])
     divider = make_axes_locatable(ax2)
-    cax = divider.append_axes("right", size="5%", pad=0.1)
+    cax = divider.append_axes("right", size="2.5%", pad=0.1)
     cbar = fig.colorbar(im, cmap=cmap, cax=cax)
-    cbar.set_label("Value of Experiment ($v_i$)", labelpad=10)
-    ax2.set_xlabel("Private Type ($t_i$)")
-    ax2.set_ylabel(r"Informativeness ($\xi_j$)")
-    # ax2.set_xticks((0, 0.5, 1, 1.5, 2))
-    ax2.set_xticklabels(("0.0", "0.25", "0.5", "0.75", "1.0"))
+    cbar.set_label(r"Experiment Gain ($\delta$)", labelpad=10)
+    ax2.set_xlabel("Private Type ($v_b$)")
+    ax2.set_ylabel(r"Informativeness ($I$)")
+    ax2.set_xticks((0, 1, 2, 3, 4))
+    # ax2.set_xticklabels(("0.0", "0.25", "0.5", "0.75", "1.0"))
+    ax2.set_xticklabels((0.0, 0.25, 0.5, 0.75, 1.0))
     prettify(ax=ax2)
 
     fig.tight_layout()

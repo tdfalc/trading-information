@@ -36,10 +36,12 @@ class HyperOpt:
         mechanism: Mechanism,
         threshold_indices: _Ints,
         n_jobs: Optional[int] = None,
+        verbose: Optional[bool] = None,
     ):
         self.mechanism = mechanism
         self.threshold_indices = threshold_indices
         self.n_jobs = n_jobs if n_jobs is not None else -1
+        self.verbose = verbose if verbose is not None else True
         self._objectives = None
 
     @property
@@ -50,7 +52,12 @@ class HyperOpt:
         solve = functools.partial(
             self.mechanism.solve_with_increments, tau=tau, prob_state0=prob_state0
         )
-        with tqdm_joblib(tqdm(desc=desc, total=len(self.threshold_indices))) as _:
+
+        with (
+            tqdm_joblib(tqdm(desc=desc, total=len(self.threshold_indices)))
+            if self.verbose
+            else contextlib.nullcontext()
+        ):
             *_, self._objectives = zip(
                 *Parallel(n_jobs=self.n_jobs)(
                     delayed(solve)(threshold_index=threshold_index)
@@ -82,7 +89,10 @@ class HyperOptVirtuals:
 
     def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
         solve = functools.partial(
-            self.mechanism.solve_with_virtuals, tau=tau, prob_state0=prob_state0
+            self.mechanism.solve_with_virtuals,
+            tau=tau,
+            prob_state0=prob_state0,
+            pooling=False,
         )
         with tqdm_joblib(tqdm(desc=desc, total=len(self.multipliers))) as _:
             *_, self._objectives = zip(
