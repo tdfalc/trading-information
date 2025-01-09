@@ -44,7 +44,7 @@ class Mechanism(BaseModel):
     def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
         return (
             self.midpoints * allocations
-            + np.minimum(-allocations, 0)
+            - np.maximum(allocations, 0)
             - np.cumsum(allocations) / self.num_intervals
         )
 
@@ -60,9 +60,7 @@ class Mechanism(BaseModel):
 
         return prob_signal1 * (1 - 2 * prob_state0) * tau + tau * prob_state0
 
-    def _convert_increments_to_allocations(
-        self, increments: _Floats
-    ) -> _Floats:
+    def _increments_to_allocations(self, increments: _Floats) -> _Floats:
         return np.cumsum(increments) - 1
 
     def solve_with_increments(
@@ -91,6 +89,145 @@ class Mechanism(BaseModel):
                 increments = model.addMVar(self.num_intervals, lb=0)
 
                 # Add constraints
+                model.addConstr(
+                    gp.quicksum(
+                        increments * np.arange(self.num_intervals, 0, -1)
+                    )
+                    == self.num_intervals,
+                    name="integral",
+                )
+
+                # These additional constraints ensure that the allocation function
+                # is negative before the threshold index, and nonnegative afterwards.
+                # model.addConstr(gp.quicksum(increments[:threshold_index]) >= 1)
+                # model.addConstr(gp.quicksum(increments[threshold_index:]) >= 1)
+                # model.addConstr(gp.quicksum(increments) <= 2)
+
+                model.addConstr(gp.quicksum(increments[:threshold_index]) <= 1)
+                model.addConstr(
+                    gp.quicksum(increments[: threshold_index + 1]) >= 1
+                )
+                model.addConstr(gp.quicksum(increments) <= 2)
+
+                # Initialize average transfer and externality
+                avg_transfer = 0
+                avg_externality = 0
+
+                for i, midpoint in enumerate(self.midpoints):
+
+                    threshold = self.midpoints[threshold_index]
+                    mask = self.midpoints >= np.maximum(midpoint, threshold)
+
+                    # Update expression for average transfer
+                    # transfer = np.sum(
+                    #     self.midpoints[i:] * self._pdfs[i:] + self._cdfs[i:]
+                    # )
+                    # transfer -= self._pdfs[mask].sum()
+                    # transfer *= increments[i]
+
+                    transfer = (
+                        increments[i]
+                        * (self.midpoints * self._pdfs + self._cdfs)[i:].sum()
+                    )
+                    transfer -= increments[i] * self._pdfs[mask].sum()
+                    avg_transfer += transfer  # * self._pdfs[i]
+
+                    avg_transfer += transfer
+
+                    # Update expression for average externality
+                    # externality = (2 * prob_state0 - 1) * self._pdfs[mask].sum()
+                    # externality -= prob_state0 * self._pdfs[i:].sum()
+                    # externality *= tau * (1 - 2 * prob_state0) * increments[i]
+
+                    externality = (2 * prob_state0 - 1) * self._pdfs[mask].sum()
+                    externality -= prob_state0 * self._pdfs[i:].sum()
+                    externality *= tau * (1 - 2 * prob_state0) * increments[i]
+
+                    avg_externality += externality
+
+                # avg_transfer -= (self.midpoints * self._pdfs + self._cdfs).sum()
+                # avg_transfer += self._pdfs[self.midpoints >= threshold].sum()
+                # avg_transfer *= self._step
+
+                avg_transfer -= (self.midpoints * self._pdfs + self._cdfs).sum()
+                avg_transfer += self._pdfs[self.midpoints >= threshold].sum()
+                avg_transfer *= self._step
+
+                # avg_externality += (
+                #     tau
+                #     * (1 - 2 * prob_state0)
+                #     * (
+                #         self._pdfs.sum()
+                #         + (1 - 2 * prob_state0)
+                #         * self._pdfs[self.midpoints >= threshold].sum()
+                #     )
+                # )
+                # avg_externality += tau * prob_state0 * self.num_intervals
+
+                # # avg_externality += (1 - 2 * prob_state0) * self._pdfs[
+                # #     self.midpoints >= threshold
+                # # ].sum()
+                # # avg_externality += self._pdfs.sum()
+                # # avg_externality *= tau * (1 - 2 * prob_state0)
+                # # avg_externality += tau * prob_state0 * self._pdfs.sum()
+                # avg_externality *= self._step
+
+                avg_externality += (1 - 2 * prob_state0) * self._pdfs[
+                    self.midpoints >= threshold
+                ].sum()
+                avg_externality += self._pdfs.sum()
+                avg_externality *= tau * (1 - 2 * prob_state0)
+                avg_externality += tau * prob_state0 * self._pdfs.sum()
+                avg_externality *= self._step
+
+                # Set objective function
+                model.setObjective(avg_transfer - avg_externality, GRB.MAXIMIZE)
+                model.optimize()
+
+                # Extract results
+                allocations = self._increments_to_allocations(increments.X)
+                transfers = self._allocations_to_transfers(allocations)
+                externalities = self._allocations_to_externalities(
+                    allocations, tau, prob_state0
+                )
+                multiplier = (
+                    model.getConstrByName("integral").Pi * self.num_intervals
+                )
+
+                print(avg_transfer.getValue(), avg_externality.getValue())
+
+                return (
+                    allocations,
+                    transfers,
+                    externalities,
+                    multiplier,
+                    model.ObjVal,
+                )
+
+    def solve_with_increments(
+        self,
+        threshold_index: int,
+        tau: float,
+        prob_state0: float,
+    ):
+        """
+        Solve the optimization problem using increments.
+
+        Args:
+            threshold_index (int): Index at which allocations change from negative to non-negative.
+            tau (float): Parameter that encodes degree of competition.
+            prob_state0 (float): The seller's own type (probability of state 0).
+
+        Returns:
+            tuple: Allocations, transfers, externalities, lagrange multiplier, and objective value.
+        """
+        with gp.Env(empty=True) as env:
+            env.setParam("OutputFlag", 0)
+            env.start()
+            with gp.Model(env=env) as model:
+
+                # Define decision variables
+                increments = model.addMVar(self.num_intervals, lb=0)
                 model.addConstr(increments >= 0, name="monotonicity")
                 model.addConstr(
                     gp.quicksum(
@@ -108,13 +245,11 @@ class Mechanism(BaseModel):
                 )
                 model.addConstr(gp.quicksum(increments) <= 2)
 
-                # Initialize average transfer and externality
-                avg_transfer = 0
-                avg_externality = 0
-
+                avg_transfer, avg_externality = 0, 0
                 for i, midpoint in enumerate(self.midpoints):
+
                     threshold = self.midpoints[threshold_index]
-                    mask = self.midpoints >= max(midpoint, threshold)
+                    mask = self.midpoints >= np.maximum(midpoint, threshold)
 
                     # Update expression for average transfer
                     transfer = (
@@ -135,14 +270,26 @@ class Mechanism(BaseModel):
                     )
                     avg_externality += externality  # * self._pdfs[i]
 
-                # Set objective function
-                model.setObjective(avg_transfer - avg_externality, GRB.MAXIMIZE)
+                # These terms are constant with respect to the optimsation variables, however we
+                # add them in we can sanity check the objective function value. Can delete.
+                avg_transfer -= (self.midpoints * self._pdfs + self._cdfs).sum()
+                avg_transfer += self._pdfs[self.midpoints >= threshold].sum()
+                avg_transfer *= self._step
+
+                avg_externality += (1 - 2 * prob_state0) * self._pdfs[
+                    self.midpoints >= threshold
+                ].sum()
+                avg_externality += self._pdfs.sum()
+                avg_externality *= tau * (1 - 2 * prob_state0)
+                avg_externality += tau * prob_state0 * self._pdfs.sum()
+                avg_externality *= self._step
+
+                model.setObjective(
+                    (avg_transfer - avg_externality), GRB.MAXIMIZE
+                )
                 model.optimize()
 
-                # Extract results
-                allocations = self._convert_increments_to_allocations(
-                    increments.X
-                )
+                allocations = self._increments_to_allocations(increments.X)
                 transfers = self._allocations_to_transfers(allocations)
                 externalities = self._allocations_to_externalities(
                     allocations, tau, prob_state0
@@ -150,6 +297,8 @@ class Mechanism(BaseModel):
                 multiplier = (
                     model.getConstrByName("integral").Pi * self.num_intervals
                 )
+
+                print(avg_transfer.getValue(), avg_externality.getValue())
 
                 return (
                     allocations,

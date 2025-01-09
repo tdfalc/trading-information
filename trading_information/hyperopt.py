@@ -54,9 +54,7 @@ class HyperOptBase(BaseModel, ABC):
 
     def _run_parallel(
         self,
-        solve_func: Callable[
-            [Union[int, float]], float
-        ],  # Callable accepting a single argument
+        solve_func: Callable[[Union[int, float]], float],
         param_list: Union[_Ints, _Floats],
         desc: Optional[str],
     ) -> None:
