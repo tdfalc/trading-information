@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 import numpy as np
 import joblib
 from tqdm import tqdm
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from trading_information.mechanism import Mechanism
 
@@ -43,9 +43,7 @@ class HyperOptBase(BaseModel, ABC):
         -1, description="Number of parallel jobs. Defaults to -1 (all available cores)."
     )
     verbose: bool = Field(True, description="Whether to display progress using tqdm.")
-    _objectives: Optional[List[float]] = Field(
-        None, description="Cached objectives from the last run."
-    )
+    _objectives: List[float] = PrivateAttr()
 
     class Config:
         arbitrary_types_allowed = True
@@ -56,7 +54,9 @@ class HyperOptBase(BaseModel, ABC):
 
     def _run_parallel(
         self,
-        solve_func: Callable,
+        solve_func: Callable[
+            [Union[int, float]], float
+        ],  # Callable accepting a single argument
         param_list: Union[_Ints, _Floats],
         desc: Optional[str],
     ) -> None:
@@ -68,7 +68,7 @@ class HyperOptBase(BaseModel, ABC):
         ):
             *_, self._objectives = zip(
                 *Parallel(n_jobs=self.n_jobs)(
-                    delayed(solve_func)(param=value) for value in param_list
+                    delayed(solve_func)(value) for value in param_list
                 )
             )
 

@@ -1,7 +1,7 @@
 import gurobipy as gp
 from gurobipy import GRB
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from trading_information.distributions import Distribution
 from trading_information.virtual_values import VirtualValues
@@ -17,18 +17,10 @@ class Mechanism(BaseModel):
     )
     dist: Distribution = Field(..., description="The distribution of types.")
 
-    _step: float = Field(
-        init=False, description="Step size based on the number of intervals."
-    )
-    _midpoints: _Floats = Field(
-        init=False, description="Midpoints used for Riemann sum."
-    )
-    _pdfs: _Floats = Field(
-        init=False, description="PDF values at the midpoints."
-    )
-    _cdfs: _Floats = Field(
-        init=False, description="CDF values at the midpoints."
-    )
+    _step: float = PrivateAttr()
+    _midpoints: _Floats = PrivateAttr()
+    _pdfs: _Floats = PrivateAttr()
+    _cdfs: _Floats = PrivateAttr()
 
     class Config:
         arbitrary_types_allowed = True
@@ -74,15 +66,18 @@ class Mechanism(BaseModel):
         return np.cumsum(increments) - 1
 
     def solve_with_increments(
-        self, tau: float, prob_state0: float, threshold_index: int
+        self,
+        threshold_index: int,
+        tau: float,
+        prob_state0: float,
     ):
         """
         Solve the optimization problem using increments.
 
         Args:
+            threshold_index (int): Index at which allocations change from negative to non-negative.
             tau (float): Parameter that encodes degree of competition.
             prob_state0 (float): The seller's own type (probability of state 0).
-            threshold_index (int): Index at which allocations change from negative to non-negative.
 
         Returns:
             tuple: Allocations, transfers, externalities, lagrange multiplier, and objective value.
@@ -175,9 +170,9 @@ class Mechanism(BaseModel):
         Solve the optimization problem using virtual values.
 
         Args:
+            multiplier (float): Lagrangian multiplier for the integral constraint.
             tau (float): Parameter that encodes degree of competition.
             prob_state0 (float): The seller's own type (probability of state 0).
-            multiplier (float): Lagrangian multiplier for the integral constraint.
             integral_constraint (bool): Whether to enforce the integral constraint explicitly.
 
         Returns:

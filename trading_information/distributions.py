@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy import stats
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, PrivateAttr
 
 
 _FloatOrFloats = Union[float, np.ndarray[float]]
@@ -21,20 +21,24 @@ class Distribution(ABC):
         pass
 
 
-class Uniform(BaseModel, Distribution):
+class Uniform(Distribution, BaseModel):
     """Uniform distribution defined by lower and upper bounds."""
 
     low: float = Field(..., description="Lower bound of the uniform distribution.")
     high: float = Field(..., description="Upper bound of the uniform distribution.")
 
+    # Internal attribute for the scipy distribution
+    _dist: stats.rv_continuous = PrivateAttr()
+
     @model_validator(mode="after")
-    def validate_bounds(self) -> "Uniform":
+    def validate_and_initialize(self) -> "Uniform":
         if self.low >= self.high:
             raise ValueError("`low` must be less than `high`.")
+        # Initialize the scipy uniform distribution
+        object.__setattr__(
+            self, "_dist", stats.uniform(loc=self.low, scale=self.high - self.low)
+        )
         return self
-
-    def __post_init__(self):
-        self._dist = stats.uniform(loc=self.low, scale=self.high - self.low)
 
     def pdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
         return self._dist.pdf(x)
@@ -43,7 +47,7 @@ class Uniform(BaseModel, Distribution):
         return self._dist.cdf(x)
 
 
-class BetaMixture(BaseModel, Distribution):
+class BetaMixture(Distribution, BaseModel):
     """Mixture of beta distributions with specified weights."""
 
     alphas: List[float] = Field(
@@ -56,8 +60,12 @@ class BetaMixture(BaseModel, Distribution):
         ..., description="List of weights for the mixture components."
     )
 
+    # Internal attribute for the beta distributions
+    _dists: List[stats.rv_continuous] = PrivateAttr()
+
     @model_validator(mode="after")
-    def validate_inputs(self) -> "BetaMixture":
+    def validate_and_initialize(self) -> "BetaMixture":
+        # Validate inputs
         if len(self.alphas) != len(self.betas):
             raise ValueError("`alphas` and `betas` must have the same length.")
         if len(self.alphas) != len(self.weights):
@@ -66,10 +74,12 @@ class BetaMixture(BaseModel, Distribution):
             raise ValueError("Weights must sum to 1.0.")
         if any(w < 0 for w in self.weights):
             raise ValueError("Weights must be non-negative.")
-        return self
 
-    def __post_init__(self):
-        self._dists = [stats.beta(a, b) for a, b in zip(self.alphas, self.betas)]
+        # Initialize the beta distributions
+        object.__setattr__(
+            self, "_dists", [stats.beta(a, b) for a, b in zip(self.alphas, self.betas)]
+        )
+        return self
 
     def pdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
         weighted_pdfs = [d.pdf(x) * w for d, w in zip(self._dists, self.weights)]
