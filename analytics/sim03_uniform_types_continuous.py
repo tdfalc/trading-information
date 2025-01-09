@@ -1,84 +1,23 @@
 import os
 from pathlib import Path
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-from trading_information.mechanism import Mechanism
-from trading_information.hyperopt import HyperOpt, HyperOptVirtuals
-from trading_information.distributions import Uniform, BetaMixture
-from trading_information.virtual_values import VirtualValues
-
-import sys
-
-sys.path.append("../")
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-from tfds.plotting import prettify, use_tex
-
-import os
-from pathlib import Path
-
-import numpy as np
-import matplotlib.pyplot as plt
-
-from trading_information.mechanism import Mechanism
-from trading_information.hyperopt import HyperOpt, HyperOptVirtuals
-from trading_information.distributions import Uniform, BetaMixture
-from trading_information.virtual_values import VirtualValues
-
-from tqdm import tqdm
-import matplotlib as mpl
-import matplotlib.cm as cm
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from trading_information.typing import _Floats
 from typing import Optional
 
-import os
-from pathlib import Path
-from typing import Optional, Dict, Any
-
 import numpy as np
-from scipy import stats
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.lines import Line2D
-from tfds.log import create_logger
-from tfds.plotting import prettify, use_tex
-from tfds.decorators import cache, blind_file_cache
 from matplotlib.axes import Axes
+from tfds.plotting import prettify, use_tex
+from tfds.log import create_logger
 
 from trading_information.mechanism import Mechanism
-from trading_information.hyperopt import HyperOpt
-from trading_information.distributions import Uniform, BetaMixture, Distribution
+from trading_information.distributions import Uniform
 from trading_information.virtual_values import VirtualValues
 from trading_information.typing import _Floats
 
-import os
-from pathlib import Path
 
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.cm
+logger = create_logger(__name__)
 
 
-from tfds.plotting import prettify, use_tex
-
-
-def add_discontinuities(arr: _Floats, threshold: Optional[float] = None) -> _Floats:
-    threshold = 1e-3 if threshold is None else threshold
-    threshold = 1e-4
+def add_discontinuities(arr: _Floats, threshold: Optional[float] = 1e-4) -> _Floats:
     arr[np.abs(np.diff(arr, prepend=arr[0])) > 0.1] = np.nan
     return arr
 
@@ -90,20 +29,17 @@ def plot_discontinuous_function(
     if ax is None:
         ax = plt.gca()
 
-    # Mask to filter out NaNs or infinite values
+    # Filter out NaNs or infinite values
     mask = np.isfinite(y)
 
-    # Split the data into continuous segments
+    # Identify and split the data into continuous segments
     discontinuities = np.where(np.diff(np.where(mask)[0]) != 1)[0] + 1
     segments_x = np.split(x[mask], discontinuities)
     segments_y = np.split(y[mask], discontinuities)
 
     # Plot each segment
     for i, (seg_x, seg_y) in enumerate(zip(segments_x, segments_y)):
-        # Plot the continuous segment
         ax.plot(seg_x, seg_y, "-", color=color, zorder=zorder)
-
-        # Highlight the endpoints of the segment
         ax.scatter(
             [seg_x[0], seg_x[-1]],
             [seg_y[0], seg_y[-1]],
@@ -113,7 +49,7 @@ def plot_discontinuous_function(
             facecolor="w",
         )
 
-        # Draw dashed lines between discontinuous segments
+        # Plot dashed lines between discontinuous segments
         if i < len(segments_x) - 1:
             ax.plot(
                 [seg_x[-1], segments_x[i + 1][0]],
@@ -134,15 +70,19 @@ def _plot_virtual_value(
     ax.plot(midpoints, positive, color="k", label=r"$\phi^+$")
     ax.plot(midpoints, negative, color="k", ls="dashed", label=r"$\phi^-$")
     ax.axhline(y=lag, color="red", ls="solid", zorder=0, label=r"$\lambda$")
+
     where = (negative > lag) & (positive <= lag)
     ax.fill_between(midpoints, negative, positive, where=where, color="yellow", alpha=0.3)
     where = negative <= lag
     ax.fill_between(midpoints, negative, positive, where=where, color="blue", alpha=0.3)
     where = positive > lag
     ax.fill_between(midpoints, negative, positive, where=where, color="blue", alpha=0.3)
+
     prettify(ax=ax, legend=(i == 3))
+
     if i == 0:
-        ax.set_ylabel("Virtual Value")
+        ax.set_ylabel("Virtual Value ($\phi$)")
+        ax.yaxis.set_label_coords(-0.3, 0.5)
     else:
         ax.tick_params(labelleft=False)
 
@@ -153,7 +93,8 @@ def _plot_informativeness(axs: Axes, midpoints: _Floats, allocations: _Floats, i
     plot_discontinuous_function(midpoints, add_discontinuities(allocations), "k", ax)
     prettify(ax=ax, legend=False)
     if i == 0:
-        ax.set_ylabel("Informativeness")
+        ax.set_ylabel("Informativeness ($I$)")
+        ax.yaxis.set_label_coords(-0.3, 0.5)
     else:
         ax.tick_params(labelleft=False)
 
@@ -164,7 +105,8 @@ def _plot_transfer(axs: Axes, midpoints: _Floats, transfers: _Floats, i: int) ->
     plot_discontinuous_function(midpoints, add_discontinuities(transfers), "k", ax)
     prettify(ax=ax, legend=False)
     if i == 0:
-        ax.set_ylabel("Transfer")
+        ax.set_ylabel("Transfer ($t$)")
+        ax.yaxis.set_label_coords(-0.3, 0.5)
     else:
         ax.tick_params(labelleft=False)
 
@@ -176,155 +118,51 @@ def _plot_externality(axs: Axes, midpoints: _Floats, externalities: _Floats, i: 
     ax.set_xlabel("Type ($v_b$)")
     prettify(ax=ax, legend=False)
     if i == 0:
-        ax.set_ylabel("Externality")
+        ax.set_ylabel("Externality ($c$)")
+        ax.yaxis.set_label_coords(-0.3, 0.5)
     else:
         ax.tick_params(labelleft=False)
-    print(np.nanmean(externalities))
-    print(externalities)
-    ax.axhline(y=np.nanmean(externalities), color="red")
 
 
 def main():
-    # logger = create_logger(__name__)
-    # logger.info("Running optimal allocations analysis")
+    logger.info("Running uniform types (continuous) analysis")
 
     use_tex()
 
     savedir = Path(__file__).parent / "docs/sim03_uniform_types_continuous"
     os.makedirs(savedir, exist_ok=True)
-    # 1.
-    num_intervals = 100
+
+    num_intervals = 1000
     threshold_index = int(num_intervals / 2)
     dist = Uniform(low=0, high=1)
-    # prob_state0 = 0.2
-    # taus = [0, 1 / 3, 2 / 3, 1]
-
-    # fig, axs = plt.subplots(4, len(taus), figsize=(6, 8), sharex=True)
-
-    # for i, tau in enumerate(taus):
-
-    #     mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
-    #     midpoints = mechanism.midpoints
-    #     (
-    #         allocations,
-    #         transfers,
-    #         externalities,
-    #         avg_transfer,
-    #         avg_externality,
-    #         lag,
-    #         obj,
-    #     ) = mechanism.solve_with_increments(
-    #         tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
-    #     )
-    #     lag *= num_intervals
-
-    #     positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
-
-    #     _plot_virtual_value(axs, midpoints, positive, negative, lag, i)
-    #     _plot_informativeness(axs, midpoints, allocations, i)
-    #     _plot_transfer(axs, midpoints, transfers, i)
-    #     _plot_externality(axs, midpoints, externalities, i)
-
-    # fig.tight_layout()
-    # fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
-
-    # 2.
     prob_state0 = 1
-    taus = np.linspace(0, 1, 11)
+    taus = [0, 1 / 3, 2 / 3, 1]
 
-    fig, ax = plt.subplots(figsize=(7, 3))
-    fig2, ax2 = plt.subplots(figsize=(7, 3))
+    fig, axs = plt.subplots(4, len(taus), figsize=(6, 7), sharex=True)
 
-    cmap = plt.cm.viridis
-    # create normalization instance
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
-    # create a scalarmappable from the colormap
-    sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm)
+    for i, tau in enumerate(taus):
 
-    prob_state0s = np.linspace(0, 1, 11)
-    for j, tau in enumerate(taus):
+        mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+        midpoints = mechanism.midpoints
+        (
+            allocations,
+            transfers,
+            externalities,
+            multiplier,
+            _,
+        ) = mechanism.solve_with_increments(
+            tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
+        )
 
-        avg_transfers = []
-        avg_externalities = []
-        objs = []
-        for i, prob_state0 in enumerate(prob_state0s):
+        positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
 
-            mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
-            midpoints = mechanism.midpoints
-            (
-                allocations,
-                transfers,
-                externalities,
-                avg_transfer,
-                avg_externality,
-                lag,
-                obj,
-            ) = mechanism.solve_with_increments(
-                tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
-            )
-            lag *= num_intervals
-            avg_transfers.append(avg_transfer)
-            avg_externalities.append(avg_externality)
-            objs.append(obj)
-
-        # fig, ax = plt.subplots()
-
-        ax.plot(prob_state0s, avg_transfers, ls="solid", color=sm.to_rgba(tau))
-        ax2.plot(prob_state0s, avg_externalities, color=sm.to_rgba(tau))
-    # ax.plot(taus, objs)
-
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="2.5%", pad=0.1)
-    cbar = fig.colorbar(sm, cmap=cmap, cax=cax)
-    cbar.set_label(r"$\tau$", labelpad=10)
-
-    divider = make_axes_locatable(ax2)
-    cax = divider.append_axes("right", size="2.5%", pad=0.1)
-    cbar = fig.colorbar(sm, cmap=cmap, cax=cax)
-    cbar.set_label(r"$\tau$", labelpad=10)
+        _plot_virtual_value(axs, midpoints, positive, negative, multiplier, i)
+        _plot_informativeness(axs, midpoints, allocations, i)
+        _plot_transfer(axs, midpoints, transfers, i)
+        _plot_externality(axs, midpoints, externalities, i)
 
     fig.tight_layout()
-    fig.savefig(savedir / "transfers.pdf", dpi=300)
-    fig2.tight_layout()
-    fig2.savefig(savedir / "externalities.pdf", dpi=300)
-
-    # 3.
-    # num_intervals = 100
-    # threshold_index = int(num_intervals / 2)
-    # dist = Uniform(low=0, high=1)
-    # prob_state0 = 0.2
-    # prob_state0s = [0, 0.2, 0.5]
-
-    # fig, axs = plt.subplots(4, len(prob_state0s), figsize=(6, 8), sharex=True)
-
-    # tau = 0.7
-
-    # for i, prob_state0 in enumerate(prob_state0s):
-
-    #     mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
-    #     midpoints = mechanism.midpoints
-    #     (
-    #         allocations,
-    #         transfers,
-    #         externalities,
-    #         avg_transfer,
-    #         avg_externality,
-    #         lag,
-    #         obj,
-    #     ) = mechanism.solve_with_increments(
-    #         tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
-    #     )
-    #     lag *= num_intervals
-
-    #     positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
-
-    #     _plot_virtual_value(axs, midpoints, positive, negative, lag, i)
-    #     _plot_informativeness(axs, midpoints, allocations, i)
-    #     _plot_transfer(axs, midpoints, transfers, i)
-    #     _plot_externality(axs, midpoints, externalities, i)
-
-    # fig.tight_layout()
-    # fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
+    fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
 
 
 if __name__ == "__main__":

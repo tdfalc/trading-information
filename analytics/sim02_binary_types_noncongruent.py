@@ -1,103 +1,91 @@
 import os
+from typing import Tuple
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from tfds.plotting import prettify, use_tex
+from tfds.log import create_logger
+
+logger = create_logger(__name__)
 
 
-def D(prob_state0):
-    return 1 - 3 * prob_state0 + 2 * (prob_state0**2)
+def tau_critical_low(type_low: float, prob_state0: float) -> float:
+    return type_low / (prob_state0 * (2 * prob_state0 - 1))
 
 
-def gamma_critical_l(theta_h, theta_l, tau, prob_state0):
-    return (1 - theta_l - tau * D(prob_state0)) / (1 - theta_h - tau * D(prob_state0))
+def tau_critical_high(type_high: float, prob_state0: float) -> float:
+    return (1 - type_high) / ((1 - 2 * prob_state0) * (1 - prob_state0))
+
+
+def compute_critical_taus(type_low: float, type_high: float, prob_state0s: np.ndarray) -> Tuple:
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # Compute critical taus for the high type
+        taus_critical_high = tau_critical_high(type_high, prob_state0s)
+        taus_critical_high[taus_critical_high <= 0] = np.nan
+
+        # Compute critical taus for the low type
+        taus_critical_low = tau_critical_low(type_low, prob_state0s)
+        taus_critical_low[taus_critical_low <= 0] = np.nan
+
+    return taus_critical_low, taus_critical_high
 
 
 if __name__ == "__main__":
+
+    logger.info("Running binary types (noncongruent) analysis")
 
     use_tex()
 
     savedir = Path(__file__).parent / "docs/sim02_binary_types_noncongruent"
     os.makedirs(savedir, exist_ok=True)
 
-    def D(prob_state0):
-        return (1 - 2 * prob_state0) * (1 - prob_state0)
+    type_high = 0.7
+    type_low = 0.1
+    num_types = 10000
+    prob_state0s = np.linspace(0, 1, num_types)
 
-    def tau_critical_l(theta_l, prob_state0):
-        return theta_l / (prob_state0 * (2 * prob_state0 - 1))
+    taus_critical_low, taus_critical_high = compute_critical_taus(type_low, type_high, prob_state0s)
 
-    def tau_critical_h(theta_h, prob_state0):
-        return (1 - theta_h) / D(prob_state0)
-
-    gamma = 0.5
-    tau = 1
-    theta_h = 0.7
-    theta_l = 0.2
-    tau = 1
-    N = 10000
-
-    prob_state0s = np.linspace(0, 1, N)
-
-    fig, ax = plt.subplots(figsize=(6.5, 3))
-    # ax.plot(prob_state0s, tau_critical_l(theta_l, prob_state0s))
-
-    with np.errstate(divide="ignore"):
-        tau_critical_hs = tau_critical_h(theta_h, prob_state0s)
-    tau_critical_hs[tau_critical_hs <= 0] = 1e-5
-
-    with np.errstate(divide="ignore"):
-        tau_critical_ls = tau_critical_l(theta_l, prob_state0s)
-    tau_critical_ls[tau_critical_ls <= 0] = 1e-5
-
-    with np.errstate(divide="ignore"):
-        tau_critical_hs = tau_critical_h(theta_h, prob_state0s)
-    tau_critical_hs[tau_critical_hs <= 0] = np.nan
-
-    with np.errstate(divide="ignore"):
-        tau_critical_ls = tau_critical_l(theta_l, prob_state0s)
-    tau_critical_ls[tau_critical_ls <= 0] = np.nan
-
-    ax.plot(prob_state0s, tau_critical_ls, color="k", ls="solid")
-    ax.plot(prob_state0s, tau_critical_hs, color="k", ls="dashed")
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
+    ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
     alpha = 0.5  # 0.2
     ax.fill_between(
         prob_state0s[prob_state0s <= 0.5],
-        tau_critical_hs[prob_state0s <= 0.5],
-        np.nanmax(tau_critical_hs),
-        facecolor="#089cfc",
+        taus_critical_high[prob_state0s <= 0.5],
+        np.nanmax(taus_critical_high),
+        facecolor="blue",
         alpha=alpha,
-        label=r"$(x_L, x_H) = (R, 0)$",
-        # hatch="//",
+        label=r"$(I^l, I^h) = (\alpha, 0)$",
     )
     ax.fill_between(
         prob_state0s[prob_state0s >= 0.5],
-        tau_critical_ls[prob_state0s >= 0.5],
-        np.nanmax(tau_critical_ls),
-        facecolor="#e86c44",
+        taus_critical_low[prob_state0s >= 0.5],
+        np.nanmax(taus_critical_low),
+        facecolor="red",
         alpha=alpha,
-        label=r"$(x_L, x_H) = (0, 1)$",
-        # hatch=".",
+        label=r"$(I^l, I^h) = (0, 1)$",
     )
 
     ax.fill_between(
         prob_state0s,
         0,
-        np.concatenate([tau_critical_hs[prob_state0s <= 0.5], tau_critical_ls[prob_state0s > 0.5]]),
-        facecolor="#40a44c",
+        np.concatenate(
+            [taus_critical_high[prob_state0s <= 0.5], taus_critical_low[prob_state0s > 0.5]]
+        ),
+        facecolor="green",
         alpha=alpha,
-        label=r"$(x_L, x_H) = (R, 1)$",
+        label=r"$(I^l, I^h) = (\alpha, 1)$",
     )
 
     prettify(ax=ax, legend=True)
 
-    # ax.set_ylim(top=100, bottom=0)
-    # ax.set_yscale("log")
     ax.set_ylim(top=1, bottom=0.01)
     ax.set_xlim(left=0, right=1)
-    ax.set_xlabel(r"Seller's Information $(\beta)$")
-    ax.set_ylabel(r"Threshold $\tau$")
+    ax.set_xlabel(r"Seller's Information ($v_s$)")
+    ax.set_ylabel(r"Threshold $\tau$ ($\tau^\star$)")
 
     fig.tight_layout()
-    fig.savefig(savedir / "noncongruent.pdf", dpi=300)
+    fig.savefig(savedir / "binary_types_noncongruent.pdf", dpi=300)

@@ -1,121 +1,100 @@
 import os
+from typing import Tuple
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from tfds.plotting import prettify, use_tex
+from tfds.log import create_logger
+
+logger = create_logger(__name__)
 
 
 def D(prob_state0):
-    return 1 - 3 * prob_state0 + 2 * (prob_state0**2)
+    return (1 - 2 * prob_state0) * (1 - prob_state0)
 
 
-def gamma_critical_l(theta_h, theta_l, tau, prob_state0):
-    return (1 - theta_l - tau * D(prob_state0)) / (1 - theta_h - tau * D(prob_state0))
+def tau_critical_low(type_low: float, type_high: float, prob_state0: float, gamma: float) -> float:
+    return ((1 - type_low) - gamma * (1 - type_high)) / ((1 - gamma) * D(prob_state0))
+
+
+def tau_critical_high(type_high: float, prob_state0: float) -> float:
+    return (1 - type_high) / D(prob_state0)
+
+
+def compute_critical_taus(
+    type_low: float, type_high: float, prob_state0s: np.ndarray, gamma: float
+) -> Tuple:
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # Compute critical taus for the high type
+        taus_critical_high = tau_critical_high(type_high, prob_state0s)
+        taus_critical_high[taus_critical_high <= 0] = 1e5
+
+        # Compute critical taus for the low type
+        taus_critical_low = tau_critical_low(type_low, type_high, prob_state0s, gamma)
+        taus_critical_low[taus_critical_low <= 0] = 1e-5
+
+    return taus_critical_low, taus_critical_high
 
 
 if __name__ == "__main__":
+
+    logger.info("Running binary types (congruent) analysis")
 
     use_tex()
 
     savedir = Path(__file__).parent / "docs/sim01_binary_types_congruent"
     os.makedirs(savedir, exist_ok=True)
 
-    theta_h = 2 / 3
-    theta_l = 5 / 6
-    tau = 1
-    N = 10000
+    type_high = 2 / 3
+    type_low = 5 / 6
+    num_types = 10000
+    prob_state0s = np.linspace(0, 1, num_types)
+    gamma = 0.1
 
-    prob_state0s = np.linspace(0, 1, N)
+    taus_critical_low, taus_critical_high = compute_critical_taus(
+        type_low, type_high, prob_state0s, gamma
+    )
 
-    gammas = [
-        0.01,
-        0.1,
-        0.2,
-        0.3,
-        0.4,
-        0.45,
-        0.49,
-        0.51,
-        0.6,
-        0.7,
-        0.85,
-        0.86,
-        0.87,
-        0.88,
-        0.89,
-        0.9,
-    ]
+    fig, ax = plt.subplots(figsize=(6, 3))
 
-    for gamma in gammas:
-        print(gamma)
+    ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
+    ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
 
-        # fig, axs  = plt.subplots(1, 3, figsize=(12, 3 ))
+    alpha = 0.5
+    ax.fill_between(
+        prob_state0s[prob_state0s <= 0.5],
+        taus_critical_high[prob_state0s <= 0.5],
+        np.nanmax(taus_critical_high),
+        facecolor="red",
+        alpha=alpha,
+        label=r"$(I^l, I^h) = (0, 0)$",
+    )
 
-        fig, ax = plt.subplots(figsize=(6.5, 3))
-        # ax.plot(prob_state0s, tau_critical_l(theta_l, prob_state0s))
+    ax.fill_between(
+        prob_state0s,
+        taus_critical_low,
+        taus_critical_high,
+        facecolor="blue",
+        alpha=alpha,
+        label=r"$(I^l, I^h) = (0, 1)$",
+    )
 
-        # with np.errstate(divide='ignore'):
-        #     tau_critical_hs = tau_critical_h(theta_h, prob_state0s)
-        # tau_critical_hs[tau_critical_hs <= 0] = 1e-5
+    ax.fill_between(
+        prob_state0s,
+        0,
+        taus_critical_low,
+        facecolor="green",
+        alpha=alpha,
+        label=r"$(I^l, I^h) = (1, 1)$",
+    )
 
-        # with np.errstate(divide='ignore'):
-        #     tau_critical_ls = tau_critical_l(theta_l, prob_state0s)
-        # tau_critical_ls[tau_critical_ls <= 0] = 1e-5
+    prettify(ax=ax, legend=True)
 
-        def D(prob_state0):
-            return (1 - 2 * prob_state0) * (1 - prob_state0)
-
-        def tau_critical_l(theta_l, theta_h, prob_state0):
-            return ((1 - theta_l) - gamma * (1 - theta_h)) / ((1 - gamma) * D(prob_state0))
-
-        def tau_critical_h(theta_h, prob_state0):
-            return (1 - theta_h) / D(prob_state0)
-
-        with np.errstate(divide="ignore"):
-            tau_critical_hs = tau_critical_h(theta_h, prob_state0s)
-        tau_critical_hs[tau_critical_hs <= 0] = 1e5
-
-        with np.errstate(divide="ignore"):
-            tau_critical_ls = tau_critical_l(theta_l, theta_h, prob_state0s)
-        tau_critical_ls[tau_critical_ls <= 0] = 1e-5
-
-        ax.plot(prob_state0s, tau_critical_ls, color="k", ls="solid")
-        ax.plot(prob_state0s, tau_critical_hs, color="k", ls="dashed")
-
-        ax.fill_between(
-            prob_state0s[prob_state0s <= 0.5],
-            tau_critical_hs[prob_state0s <= 0.5],
-            np.nanmax(tau_critical_hs),
-            facecolor="red",
-            alpha=0.2,
-            label=r"$(x_L, x_H) = (0, 0)$",
-        )
-
-        ax.fill_between(
-            prob_state0s,
-            tau_critical_ls,
-            tau_critical_hs,
-            facecolor="blue",
-            alpha=0.2,
-            label=r"$(x_L, x_H) = (0, 1)$",
-        )
-
-        ax.fill_between(
-            prob_state0s,
-            0,
-            tau_critical_ls,
-            facecolor="green",
-            alpha=0.2,
-            label=r"$(x_L, x_H) = (1, 1)$",
-        )
-
-        prettify(ax=ax, legend=True)
-
-        ax.set_ylim(top=1, bottom=0.01)
-        ax.set_xlim(left=0, right=1)
-        ax.set_xlabel(r"Seller's Information $(\beta)$")
-        ax.set_ylabel(r"Threshold $\tau$")
-        fig.tight_layout()
-        fig.savefig(savedir / f"congruent_gamma{gamma}.pdf", dpi=300)
+    ax.set_ylim(top=1, bottom=0.01)
+    ax.set_xlim(left=0, right=1)
+    ax.set_xlabel(r"Seller's Information ($v_s$)")
+    ax.set_ylabel(r"Threshold $\tau$ ($\tau^\star$)")
+    fig.tight_layout()
+    fig.savefig(savedir / f"binary_types_congruent_gamma{gamma}.pdf", dpi=300)

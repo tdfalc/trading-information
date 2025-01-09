@@ -4,9 +4,10 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-
 from tfds.plotting import prettify, use_tex
+from tfds.log import create_logger
+
+logger = create_logger(__name__)
 
 
 def calculate_exerpiment_value(informativeness: float, type: float) -> float:
@@ -21,6 +22,8 @@ def calculate_exerpiment_value(informativeness: float, type: float) -> float:
 
 
 if __name__ == "__main__":
+
+    logger.info("Running value of experiments analysis")
 
     use_tex()
 
@@ -37,17 +40,14 @@ if __name__ == "__main__":
     for i, allocation in enumerate(allocations):
         exerpiment_values[i, :] = calculate_exerpiment_value(allocation, types)
 
-    cmap = "YlOrRd"
-
-    im = ax.imshow(exerpiment_values[::-1], cmap=cmap, extent=[0, 4, -1, 1])
-
+    im = ax.imshow(exerpiment_values[::-1], cmap="YlOrRd", extent=[0, 4, -1, 1])
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="2.5%", pad=0.1)
-    cbar = fig.colorbar(im, cmap=cmap, cax=cax)
-    cbar.set_label(r"Experiment Gain ($\delta$)", labelpad=10)
+    cbar = fig.colorbar(im, cax=cax)
+    cbar.set_label(r"Experiment Gain ($\delta (I, v_b)$)", labelpad=10)
 
     ax.set_xlabel("Private Type ($v_b$)")
-    ax.set_ylabel(r"Informativeness ($I$)")
+    ax.set_ylabel(r"Informativeness ($I(v_b)$)")
     ax.set_xticks((0, 1, 2, 3, 4))
     ax.set_xticklabels(("$0.0$", "$0.25$", "$0.5$", "$0.75$", "$1.0$"))
     prettify(ax=ax)

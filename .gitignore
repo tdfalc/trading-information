@@ -163,7 +163,10 @@ cython_debug/
 
 **/.DS_Store
 
+.vscode/
+
 # Ignore cache
 cache/
 cache*
 cache*/
+
