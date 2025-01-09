@@ -1,5 +1,3 @@
-from typing import Optional
-
 from scipy.interpolate import interp1d
 from scipy.spatial import ConvexHull
 import numpy as np
