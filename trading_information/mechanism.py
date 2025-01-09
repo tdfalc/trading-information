@@ -357,7 +357,7 @@ class Mechanism:
                 return (
                     allocations,
                     transfers,
-                    # externalities,
+                    externalities,
                     # multiplier,
                     avg_transfer.getValue(),
                     avg_externality.getValue(),

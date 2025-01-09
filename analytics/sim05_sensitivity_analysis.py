@@ -26,19 +26,14 @@ def main():
     savedir = Path(__file__).parent / "docs/sim05_sensitivity_analysis"
     os.makedirs(savedir, exist_ok=True)
 
-    num_intervals = 1000
+    num_intervals = 100
     threshold_indices = np.arange(100, 900, 1).astype(int)
     threshold_indices = np.array([500]).astype(int)
-
-    distributions = {
-        "uniform": Uniform(0, 1),
-        "bimodal": BetaMixture((8, 60), (30, 30), (0.5, 0.5)),
-    }
 
     dist = Uniform(0, 1)
     # dist = BetaMixture((8, 60), (30, 30), (0.5, 0.5))
 
-    taus = np.linspace(0, 2, 20)
+    taus = np.linspace(0, 1, 11)
 
     cache_location = savedir / "cache"
     os.makedirs(cache_location, exist_ok=True)

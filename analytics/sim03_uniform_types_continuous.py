@@ -64,6 +64,17 @@ from trading_information.distributions import Uniform, BetaMixture, Distribution
 from trading_information.virtual_values import VirtualValues
 from trading_information.typing import _Floats
 
+import os
+from pathlib import Path
+
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.cm
+
+
+from tfds.plotting import prettify, use_tex
+
 
 def add_discontinuities(arr: _Floats, threshold: Optional[float] = None) -> _Floats:
     threshold = 1e-3 if threshold is None else threshold
@@ -168,6 +179,9 @@ def _plot_externality(axs: Axes, midpoints: _Floats, externalities: _Floats, i: 
         ax.set_ylabel("Externality")
     else:
         ax.tick_params(labelleft=False)
+    print(np.nanmean(externalities))
+    print(externalities)
+    ax.axhline(y=np.nanmean(externalities), color="red")
 
 
 def main():
@@ -178,39 +192,139 @@ def main():
 
     savedir = Path(__file__).parent / "docs/sim03_uniform_types_continuous"
     os.makedirs(savedir, exist_ok=True)
-
-    num_intervals = 1000
+    # 1.
+    num_intervals = 100
     threshold_index = int(num_intervals / 2)
     dist = Uniform(low=0, high=1)
+    # prob_state0 = 0.2
+    # taus = [0, 1 / 3, 2 / 3, 1]
+
+    # fig, axs = plt.subplots(4, len(taus), figsize=(6, 8), sharex=True)
+
+    # for i, tau in enumerate(taus):
+
+    #     mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+    #     midpoints = mechanism.midpoints
+    #     (
+    #         allocations,
+    #         transfers,
+    #         externalities,
+    #         avg_transfer,
+    #         avg_externality,
+    #         lag,
+    #         obj,
+    #     ) = mechanism.solve_with_increments(
+    #         tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
+    #     )
+    #     lag *= num_intervals
+
+    #     positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
+
+    #     _plot_virtual_value(axs, midpoints, positive, negative, lag, i)
+    #     _plot_informativeness(axs, midpoints, allocations, i)
+    #     _plot_transfer(axs, midpoints, transfers, i)
+    #     _plot_externality(axs, midpoints, externalities, i)
+
+    # fig.tight_layout()
+    # fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
+
+    # 2.
     prob_state0 = 1
-    taus = [0, 1 / 3, 2 / 3, 1]
+    taus = np.linspace(0, 1, 11)
 
-    fig, axs = plt.subplots(4, len(taus), figsize=(6, 8), sharex=True)
+    fig, ax = plt.subplots(figsize=(7, 3))
+    fig2, ax2 = plt.subplots(figsize=(7, 3))
 
-    for i, tau in enumerate(taus):
+    cmap = plt.cm.viridis
+    # create normalization instance
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
+    # create a scalarmappable from the colormap
+    sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm)
 
-        mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
-        midpoints = mechanism.midpoints
-        allocations, bins, avg_transfer, avg_externality, lag, obj = (
-            mechanism.solve_with_increments(
+    prob_state0s = np.linspace(0, 1, 11)
+    for j, tau in enumerate(taus):
+
+        avg_transfers = []
+        avg_externalities = []
+        objs = []
+        for i, prob_state0 in enumerate(prob_state0s):
+
+            mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+            midpoints = mechanism.midpoints
+            (
+                allocations,
+                transfers,
+                externalities,
+                avg_transfer,
+                avg_externality,
+                lag,
+                obj,
+            ) = mechanism.solve_with_increments(
                 tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
             )
-        )
-        lag *= num_intervals
+            lag *= num_intervals
+            avg_transfers.append(avg_transfer)
+            avg_externalities.append(avg_externality)
+            objs.append(obj)
 
-        transfers = mechanism._allocations_to_transfers(allocations)
-        externalities = mechanism._allocations_to_externalities(
-            allocations, tau=tau, prob_state0=prob_state0
-        )
-        positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
+        # fig, ax = plt.subplots()
 
-        _plot_virtual_value(axs, midpoints, positive, negative, lag, i)
-        _plot_informativeness(axs, midpoints, allocations, i)
-        _plot_transfer(axs, midpoints, transfers, i)
-        _plot_externality(axs, midpoints, externalities, i)
+        ax.plot(prob_state0s, avg_transfers, ls="solid", color=sm.to_rgba(tau))
+        ax2.plot(prob_state0s, avg_externalities, color=sm.to_rgba(tau))
+    # ax.plot(taus, objs)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="2.5%", pad=0.1)
+    cbar = fig.colorbar(sm, cmap=cmap, cax=cax)
+    cbar.set_label(r"$\tau$", labelpad=10)
+
+    divider = make_axes_locatable(ax2)
+    cax = divider.append_axes("right", size="2.5%", pad=0.1)
+    cbar = fig.colorbar(sm, cmap=cmap, cax=cax)
+    cbar.set_label(r"$\tau$", labelpad=10)
 
     fig.tight_layout()
-    fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
+    fig.savefig(savedir / "transfers.pdf", dpi=300)
+    fig2.tight_layout()
+    fig2.savefig(savedir / "externalities.pdf", dpi=300)
+
+    # 3.
+    # num_intervals = 100
+    # threshold_index = int(num_intervals / 2)
+    # dist = Uniform(low=0, high=1)
+    # prob_state0 = 0.2
+    # prob_state0s = [0, 0.2, 0.5]
+
+    # fig, axs = plt.subplots(4, len(prob_state0s), figsize=(6, 8), sharex=True)
+
+    # tau = 0.7
+
+    # for i, prob_state0 in enumerate(prob_state0s):
+
+    #     mechanism = Mechanism(num_intervals=num_intervals, dist=dist)
+    #     midpoints = mechanism.midpoints
+    #     (
+    #         allocations,
+    #         transfers,
+    #         externalities,
+    #         avg_transfer,
+    #         avg_externality,
+    #         lag,
+    #         obj,
+    #     ) = mechanism.solve_with_increments(
+    #         tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
+    #     )
+    #     lag *= num_intervals
+
+    #     positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
+
+    #     _plot_virtual_value(axs, midpoints, positive, negative, lag, i)
+    #     _plot_informativeness(axs, midpoints, allocations, i)
+    #     _plot_transfer(axs, midpoints, transfers, i)
+    #     _plot_externality(axs, midpoints, externalities, i)
+
+    # fig.tight_layout()
+    # fig.savefig(savedir / "uniform_types_continuous.pdf", dpi=300)
 
 
 if __name__ == "__main__":
