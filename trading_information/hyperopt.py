@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, List, Callable
 import functools
 import contextlib
 
@@ -6,14 +6,17 @@ from joblib import Parallel, delayed
 import numpy as np
 import joblib
 from tqdm import tqdm
+from pydantic import BaseModel, Field
 
 from trading_information.mechanism import Mechanism
-from trading_information.typing import _Ints, _Floats
+
+_Floats = np.ndarray[float]
+_Ints = np.ndarray[int]
 
 
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
-    """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+    """Context manager to patch joblib to report into tqdm progress bar given as argument."""
 
     class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
         def __call__(self, *args, **kwargs):
@@ -29,78 +32,84 @@ def tqdm_joblib(tqdm_object):
         tqdm_object.close()
 
 
-class HyperOpt:
+class HyperOptBase(BaseModel):
+    """Base class for hyperparameter optimization."""
 
-    def __init__(
-        self,
-        mechanism: Mechanism,
-        threshold_indices: _Ints,
-        n_jobs: Optional[int] = None,
-        verbose: Optional[bool] = None,
-    ):
-        self.mechanism = mechanism
-        self.threshold_indices = threshold_indices
-        self.n_jobs = n_jobs if n_jobs is not None else -1
-        self.verbose = verbose if verbose is not None else True
-        self._objectives = None
+    mechanism: Mechanism = Field(
+        ..., description="Mechanism instance for optimization."
+    )
+    n_jobs: int = Field(
+        -1, description="Number of parallel jobs. Defaults to -1 (all available cores)."
+    )
+    verbose: bool = Field(True, description="Whether to display progress using tqdm.")
+    _objectives: Optional[List[float]] = Field(
+        None, description="Cached objectives from the last run."
+    )
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
-    def objectives(self):
+    def objectives(self) -> Optional[List[float]]:
         return self._objectives
 
-    def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
-        solve = functools.partial(
-            self.mechanism.solve_with_increments, tau=tau, prob_state0=prob_state0
-        )
-
+    def _run_parallel(
+        self,
+        solve_func: Callable,
+        param_list: Union[_Ints, _Floats],
+        desc: Optional[str],
+    ) -> None:
+        """Generic method for parallelized execution."""
         with (
-            tqdm_joblib(tqdm(desc=desc, total=len(self.threshold_indices)))
+            tqdm_joblib(tqdm(desc=desc, total=len(param_list)))
             if self.verbose
             else contextlib.nullcontext()
         ):
             *_, self._objectives = zip(
                 *Parallel(n_jobs=self.n_jobs)(
-                    delayed(solve)(threshold_index=threshold_index)
-                    for threshold_index in self.threshold_indices
+                    delayed(solve_func)(param=value) for value in param_list
                 )
             )
+
+    def best(self) -> float:
+        """Return the best parameter based on the optimization objectives."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
+        """Run the optimization."""
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+class HyperOptIncrements(HyperOptBase):
+    """Optimization over threshold indices using increments."""
+
+    threshold_indices: _Ints = Field(
+        ..., description="Threshold indices to optimize over."
+    )
+
+    def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
+        solve = functools.partial(
+            self.mechanism.solve_with_increments, tau=tau, prob_state0=prob_state0
+        )
+        self._run_parallel(
+            solve_func=solve, param_list=self.threshold_indices, desc=desc
+        )
 
     def best(self) -> float:
         idx = np.argmax(self._objectives)
         return self.threshold_indices[idx]
 
 
-class HyperOptVirtuals:
+class HyperOptVirtuals(HyperOptBase):
+    """Optimization over multipliers using virtual values."""
 
-    def __init__(
-        self,
-        mechanism: Mechanism,
-        multipliers: _Floats,
-        n_jobs: Optional[int] = None,
-    ):
-        self.mechanism = mechanism
-        self.multipliers = multipliers
-        self.n_jobs = n_jobs if n_jobs is not None else -1
-        self._objectives = None
-
-    @property
-    def objectives(self):
-        return self._objectives
+    multipliers: _Floats = Field(..., description="Multipliers to optimize over.")
 
     def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
         solve = functools.partial(
-            self.mechanism.solve_with_virtuals,
-            tau=tau,
-            prob_state0=prob_state0,
-            pooling=False,
+            self.mechanism.solve_with_virtuals, tau=tau, prob_state0=prob_state0
         )
-        with tqdm_joblib(tqdm(desc=desc, total=len(self.multipliers))) as _:
-            *_, self._objectives = zip(
-                *Parallel(n_jobs=self.n_jobs)(
-                    delayed(solve)(multiplier=multiplier)
-                    for multiplier in self.multipliers
-                )
-            )
+        self._run_parallel(solve_func=solve, param_list=self.multipliers, desc=desc)
 
     def best(self) -> float:
         idx = np.argmin(self._objectives)
