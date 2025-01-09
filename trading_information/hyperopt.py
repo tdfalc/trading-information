@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Optional, Union, List, Callable
 import functools
 import contextlib
@@ -32,7 +33,7 @@ def tqdm_joblib(tqdm_object):
         tqdm_object.close()
 
 
-class HyperOptBase(BaseModel):
+class HyperOptBase(BaseModel, ABC):
     """Base class for hyperparameter optimization."""
 
     mechanism: Mechanism = Field(
@@ -71,13 +72,15 @@ class HyperOptBase(BaseModel):
                 )
             )
 
+    @abstractmethod
     def best(self) -> float:
         """Return the best parameter based on the optimization objectives."""
-        raise NotImplementedError("Subclasses must implement this method.")
+        pass
 
+    @abstractmethod
     def run(self, tau: float, prob_state0: float, desc: Optional[str] = None) -> None:
         """Run the optimization."""
-        raise NotImplementedError("Subclasses must implement this method.")
+        pass
 
 
 class HyperOptIncrements(HyperOptBase):
