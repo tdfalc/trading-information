@@ -255,14 +255,14 @@ class Mechanism:
                 lagrangian = 0
 
                 for i, _ in enumerate(self.midpoints):
-                    # Add binary constraints to enforce allocation sign
+
+                    # Add binary constraints to encode allocation sign
                     model.addGenConstrIndicator(
                         binaries[i],
                         True,
                         allocations[i],
                         GRB.GREATER_EQUAL,
                         1e-12,
-                        name=f"binary_pos_{i}",
                     )
                     model.addGenConstrIndicator(
                         binaries[i],
@@ -270,7 +270,6 @@ class Mechanism:
                         allocations[i],
                         GRB.LESS_EQUAL,
                         0,
-                        name=f"binary_neg_{i}",
                     )
 
                     # Compute virtual value based on allocation sign
