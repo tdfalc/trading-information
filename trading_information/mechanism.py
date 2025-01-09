@@ -73,51 +73,6 @@ class Mechanism(BaseModel):
     ) -> _Floats:
         return np.cumsum(increments) - 1
 
-
-class Mechanism:
-
-    def __init__(self, num_intervals: int, dist: Distribution):
-        self.num_intervals = num_intervals
-        self.dist = dist
-
-        types = np.linspace(0, 1, self.num_intervals + 1)
-        self._step = 1 / self.num_intervals
-
-        # Midpoints used to approximate integral with Riemann sum
-        midpoints = (types[:-1] + types[1:]) / 2
-        self._pdfs = self.dist.pdf(midpoints)
-        self._cdfs = self.dist.cdf(midpoints)
-        self._midpoints = midpoints
-
-    @property
-    def midpoints(self) -> _Floats:
-        return self._midpoints
-
-    def _allocations_to_transfers(self, allocations: _Floats) -> _Floats:
-        return (
-            self.midpoints * allocations
-            + np.minimum(-allocations, 0)
-            - np.cumsum(allocations) / self.num_intervals
-        )
-
-    def _allocations_to_externalities(
-        self, allocations: _Floats, tau: float, prob_state0: float
-    ) -> _Floats:
-
-        prob_signal1 = (
-            1
-            - prob_state0
-            - prob_state0 * allocations
-            + (1 - 2 * prob_state0) * np.minimum(0, -allocations)
-        )
-
-        return prob_signal1 * (1 - 2 * prob_state0) * tau + tau * prob_state0
-
-    def _convert_increments_to_allocations(
-        self, increments: _Floats
-    ) -> _Floats:
-        return np.cumsum(increments) - 1
-
     def solve_with_increments(
         self, tau: float, prob_state0: float, threshold_index: int
     ):
