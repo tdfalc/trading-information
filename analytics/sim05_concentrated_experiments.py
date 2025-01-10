@@ -39,6 +39,8 @@ def main():
     ax.set_xlabel(r"$\alpha (m) - \beta (m)$")
     ax.set_ylabel(r"$\beta (m)$")
 
+    prettify(ax=ax)
+
     fig.tight_layout()
     fig.savefig(savedir / "boundary.pdf", dpi=300)
 
