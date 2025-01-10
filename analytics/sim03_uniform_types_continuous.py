@@ -11,10 +11,10 @@ from tfds.log import create_logger
 from trading_information.mechanism import Mechanism
 from trading_information.distributions import Uniform
 from trading_information.virtual_values import VirtualValues
-from trading_information.typing import _Floats
-
 
 logger = create_logger(__name__)
+
+_Floats = np.ndarray[float]
 
 
 def add_discontinuities(arr: _Floats, threshold: Optional[float] = 1e-4) -> _Floats:
@@ -23,7 +23,11 @@ def add_discontinuities(arr: _Floats, threshold: Optional[float] = 1e-4) -> _Flo
 
 
 def plot_discontinuous_function(
-    x: _Floats, y: _Floats, color: str, ax: Optional[Axes] = None, zorder: Optional[int] = 1
+    x: _Floats,
+    y: _Floats,
+    color: str,
+    ax: Optional[Axes] = None,
+    zorder: Optional[int] = 1,
 ) -> None:
 
     if ax is None:
@@ -63,7 +67,12 @@ def plot_discontinuous_function(
 
 
 def _plot_virtual_value(
-    axs: Axes, midpoints: _Floats, positive: _Floats, negative: _Floats, lag: float, i: int
+    axs: Axes,
+    midpoints: _Floats,
+    positive: _Floats,
+    negative: _Floats,
+    lag: float,
+    i: int,
 ) -> None:
     ax = axs[0, i]
     ax.sharey(axs[0, 0])
@@ -72,7 +81,9 @@ def _plot_virtual_value(
     ax.axhline(y=lag, color="red", ls="solid", zorder=0, label=r"$\lambda$")
 
     where = (negative > lag) & (positive <= lag)
-    ax.fill_between(midpoints, negative, positive, where=where, color="yellow", alpha=0.3)
+    ax.fill_between(
+        midpoints, negative, positive, where=where, color="yellow", alpha=0.3
+    )
     where = negative <= lag
     ax.fill_between(midpoints, negative, positive, where=where, color="blue", alpha=0.3)
     where = positive > lag
@@ -87,7 +98,9 @@ def _plot_virtual_value(
         ax.tick_params(labelleft=False)
 
 
-def _plot_informativeness(axs: Axes, midpoints: _Floats, allocations: _Floats, i: int) -> None:
+def _plot_informativeness(
+    axs: Axes, midpoints: _Floats, allocations: _Floats, i: int
+) -> None:
     ax = axs[1, i]
     ax.sharey(axs[1, 0])
     plot_discontinuous_function(midpoints, add_discontinuities(allocations), "k", ax)
@@ -111,7 +124,9 @@ def _plot_transfer(axs: Axes, midpoints: _Floats, transfers: _Floats, i: int) ->
         ax.tick_params(labelleft=False)
 
 
-def _plot_externality(axs: Axes, midpoints: _Floats, externalities: _Floats, i: int) -> None:
+def _plot_externality(
+    axs: Axes, midpoints: _Floats, externalities: _Floats, i: int
+) -> None:
     ax = axs[3, i]
     ax.sharey(axs[3, 0])
     plot_discontinuous_function(midpoints, add_discontinuities(externalities), "k", ax)
@@ -154,7 +169,9 @@ def main():
             tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
         )
 
-        positive, negative = VirtualValues.get_ironed_values(dist, midpoints, tau, prob_state0)
+        positive, negative = VirtualValues.get_ironed_values(
+            dist, midpoints, tau, prob_state0
+        )
 
         _plot_virtual_value(axs, midpoints, positive, negative, multiplier, i)
         _plot_informativeness(axs, midpoints, allocations, i)

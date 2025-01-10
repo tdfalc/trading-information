@@ -1,0 +1,47 @@
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from tfds.plotting import prettify, use_tex
+from tfds.log import create_logger
+
+
+logger = create_logger(__name__)
+
+
+def main():
+    logger.info("Running concentrated experiments analysis")
+
+    use_tex()
+
+    savedir = Path(__file__).parent / "docs/sim05_concentrated_experiments"
+    os.makedirs(savedir, exist_ok=True)
+
+    num_points = 1000
+    xs = np.linspace(-1, 1, num_points)
+    upper_bound = np.where(xs <= 0, 1, -2 * xs + 1)
+    lower_bound = -xs
+
+    fig, ax = plt.subplots(figsize=(6, 3))
+
+    ax.fill_between(xs, upper_bound, lower_bound, color="k", alpha=0.1)
+    ax.plot(xs, upper_bound, color="k")
+    ax.plot(xs, upper_bound, color="r", ls="solid")
+    ax.plot(xs, lower_bound, color="k", ls="solid", alpha=0.1)
+
+    ax.text(-0.32, 0.65, r"$(\alpha, \beta)$")
+    ax.text(0.55, 0, r"$(\alpha^\prime, \beta^\prime)$")
+    ax.plot([-0.1, 0.5], [0.6, 0], "-o", markersize=5, color="k", markerfacecolor="k")
+
+    ax.set_xlabel(r"$\alpha (m) - \beta (m)$")
+    ax.set_ylabel(r"$\beta (m)$")
+
+    fig.tight_layout()
+    fig.savefig(savedir / "boundary.pdf", dpi=300)
+
+
+if __name__ == "__main__":
+    main()
