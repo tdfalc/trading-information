@@ -6,8 +6,6 @@ Python implemention of [Bayesian Regression Markets](https://arxiv.org/abs/2310.
 
 * Congruent Types
 
-![Congruent](./analytics/docs/sim01_binary_types_congruent/binary_types_congruent.gif)
-
 <p align="center" width="100%">
     <img  src="./analytics/docs/sim01_binary_types_congruent/binary_types_congruent.gif">
 </p>
@@ -21,6 +19,11 @@ Python implemention of [Bayesian Regression Markets](https://arxiv.org/abs/2310.
 * Continuous Types
 
 If you find this useful in your work, we kindly request that you cite the following publication(s):
+
+
+<p align="center" width="100%">
+    <img  src="./analytics/docs/sim01_binary_types_congruent/binary_types_congruent.gif">
+</p>
 
 ```
 @misc{falconer2023bayesian,
