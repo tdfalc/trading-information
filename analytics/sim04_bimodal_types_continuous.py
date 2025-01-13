@@ -12,7 +12,6 @@ from trading_information.mechanism import Mechanism
 from trading_information.distributions import BetaMixture
 from trading_information.hyperopt import HyperOptIncrements
 from trading_information.virtual_values import VirtualValues
-from trading_information.typing import _Floats
 from analytics.sim03_uniform_types_continuous import (
     _plot_informativeness,
     _plot_transfer,
@@ -20,6 +19,8 @@ from analytics.sim03_uniform_types_continuous import (
 )
 
 logger = create_logger(__name__)
+
+_Floats = np.ndarray[float]
 
 
 def _plot_virtual_value(
