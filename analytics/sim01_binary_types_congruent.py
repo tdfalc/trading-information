@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
         # Save as BytesIO object temporarily to avoid saving every frame to disc
         buf = io.BytesIO()
-        plt.savefig(buf, format="png")
+        fig.savefig(buf, format="png", dpi=300)
         plt.close(fig)  # Close the figure to free memory
 
         # Load the image from the buffer
