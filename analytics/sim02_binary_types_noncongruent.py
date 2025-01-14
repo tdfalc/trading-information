@@ -85,7 +85,7 @@ if __name__ == "__main__":
     ax.set_ylim(top=1, bottom=0.01)
     ax.set_xlim(left=0, right=1)
     ax.set_xlabel(r"Seller's Information ($v_s$)")
-    ax.set_ylabel(r"Threshold $\tau$ ($\tau^\star$)")
+    ax.set_ylabel(r"Threshold $\tau$")
 
     fig.tight_layout()
     fig.savefig(savedir / "binary_types_noncongruent.pdf", dpi=300)

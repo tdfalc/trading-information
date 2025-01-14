@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     fig, axs = plt.subplots(3, 1, figsize=(6, 6))
 
-    def _plot_results(phi, ax, xlabel=True):
+    def _plot_results(phi, ax, xlabel=True, legend=False):
 
         taus_critical_low, taus_critical_high = compute_critical_taus(
             type_low, type_high, prob_state0s, phi
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             np.nanmax(taus_critical_high),
             facecolor="red",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (0, 0)$",
+            label=r"$(I^l, I^h) = (1, 1)$",
         )
 
         ax.fill_between(
@@ -81,7 +81,7 @@ if __name__ == "__main__":
             taus_critical_high,
             facecolor="blue",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (0, 1)$",
+            label=r"$(I^l, I^h) = (1, 0)$",
         )
 
         ax.fill_between(
@@ -90,7 +90,7 @@ if __name__ == "__main__":
             taus_critical_low,
             facecolor="green",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (1, 1)$",
+            label=r"$(I^l, I^h) = (0, 0)$",
         )
 
         ax.set_ylim(top=1, bottom=0.01)
@@ -98,14 +98,19 @@ if __name__ == "__main__":
         ax.set_ylabel(r"Threshold $\tau$")
         if xlabel:
             ax.set_xlabel(r"Seller's Information ($v_s$)")
-        prettify(ax=ax, legend=True if i == 0 else False)
+        prettify(ax=ax, legend=True if legend else False)
 
     # Save static figure for paper
     phis = [0.36, 0.5, 0.56]
     for i, phi in enumerate(phis):
         ax = axs[i]
         ax.set_title(f"$\\phi = {phi:.1f}$")
-        _plot_results(phi, ax, xlabel=True if i == len(phis) - 1 else False)
+        _plot_results(
+            phi,
+            ax,
+            xlabel=True if i == len(phis) - 1 else False,
+            legend=True if i == 0 else False,
+        )
 
     fig.tight_layout()
     fig.savefig(savedir / f"binary_types_congruent.pdf", dpi=300)
@@ -116,7 +121,7 @@ if __name__ == "__main__":
 
     for phi in phis:
         fig, ax = plt.subplots(figsize=(6, 3))
-        _plot_results(phi, ax)
+        _plot_results(phi, ax, legend=True)
         ax.set_title(f"$\\phi = {phi:.2f}$")
         fig.tight_layout()
 
