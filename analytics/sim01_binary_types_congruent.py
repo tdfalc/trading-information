@@ -31,11 +31,11 @@ def compute_critical_taus(
     with np.errstate(divide="ignore", invalid="ignore"):
         # Compute critical taus for the high type
         taus_critical_high = tau_critical_high(type_high, prob_state0s)
-        taus_critical_high[taus_critical_high <= 0] = 1e5
+        # taus_critical_high[taus_critical_high <= 0] = np.nan  # 1e5
 
         # Compute critical taus for the low type
         taus_critical_low = tau_critical_low(type_low, type_high, prob_state0s, phi)
-        taus_critical_low[taus_critical_low <= 0] = 1e-5
+        # taus_critical_low[taus_critical_low <= 0] = np.nan  # 1e-5
 
     return taus_critical_low, taus_critical_high
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     type_high = 2 / 3
     type_low = 5 / 6
-    num_types = 10000
+    num_types = 100000
     prob_state0s = np.linspace(0, 1, num_types)
 
     fig, axs = plt.subplots(3, 1, figsize=(6, 6))
@@ -62,35 +62,38 @@ if __name__ == "__main__":
             type_low, type_high, prob_state0s, phi
         )
 
-        ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
-        ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
+        # ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
+        # ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
 
         alpha = 0.5
+
         ax.fill_between(
-            prob_state0s[prob_state0s <= 0.5],
-            taus_critical_high[prob_state0s <= 0.5],
-            np.nanmax(taus_critical_high),
+            prob_state0s,
+            np.where(prob_state0s <= 0.5, taus_critical_high, taus_critical_high),
+            np.where(
+                prob_state0s <= 0.5, np.nanmax(taus_critical_high), np.nanmin(taus_critical_high)
+            ),
             facecolor="red",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (1, 1)$",
+            label=r"$(I^l, I^h) = (0, 0)$",
         )
 
         ax.fill_between(
             prob_state0s,
-            taus_critical_low,
-            taus_critical_high,
+            np.where(prob_state0s <= 0.5, taus_critical_low, taus_critical_high),
+            np.where(prob_state0s <= 0.5, taus_critical_high, taus_critical_low),
             facecolor="blue",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (1, 0)$",
+            label=r"$(I^l, I^h) = (0, 1)$",
         )
 
         ax.fill_between(
             prob_state0s,
-            0,
-            taus_critical_low,
+            np.where(prob_state0s <= 0.5, 0, 1e5),
+            np.where(prob_state0s <= 0.5, taus_critical_low, taus_critical_low),
             facecolor="green",
             alpha=alpha,
-            label=r"$(I^l, I^h) = (0, 0)$",
+            label=r"$(I^l, I^h) = (1, 1)$",
         )
 
         ax.set_ylim(top=1, bottom=0.01)
