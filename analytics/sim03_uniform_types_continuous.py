@@ -18,8 +18,11 @@ _Floats = np.ndarray[float]
 
 
 def add_discontinuities(arr: _Floats, threshold: Optional[float] = 1e-4) -> _Floats:
-    arr[np.abs(np.diff(arr, prepend=arr[0])) > 0.1] = np.nan
-    return arr
+    arr_discontinuous = arr.copy()
+    arr_discontinuous[
+        np.abs(np.diff(arr_discontinuous, prepend=arr_discontinuous[0])) > threshold
+    ] = np.nan
+    return arr_discontinuous
 
 
 def plot_discontinuous_function(

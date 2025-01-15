@@ -32,12 +32,12 @@ def main():
     ax.plot(xs, upper_bound, color="r", ls="solid")
     ax.plot(xs, lower_bound, color="k", ls="solid", alpha=0.1)
 
-    ax.text(-0.32, 0.65, r"$(\alpha, \beta)$")
-    ax.text(0.55, 0, r"$(\alpha^\prime, \beta^\prime)$")
+    ax.text(-0.35, 0.65, r"$(I_0, I_1)$")
+    ax.text(0.55, 0, r"$(I_0^\prime, I_1^\prime)$")
     ax.plot([-0.1, 0.5], [0.6, 0], "-o", markersize=5, color="k", markerfacecolor="k")
 
-    ax.set_xlabel(r"$\alpha (m) - \beta (m)$")
-    ax.set_ylabel(r"$\beta (m)$")
+    ax.set_xlabel(r"$I_0 (m) - I_1 (m)$")
+    ax.set_ylabel(r"$I_1 (m)$")
 
     prettify(ax=ax)
 

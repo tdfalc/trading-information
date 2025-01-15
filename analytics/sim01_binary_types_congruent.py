@@ -9,7 +9,20 @@ import matplotlib.pyplot as plt
 from tfds.plotting import prettify, use_tex
 from tfds.log import create_logger
 
+from analytics.sim03_uniform_types_continuous import add_discontinuities
+
 logger = create_logger(__name__)
+
+
+class Colors:
+    black = "#000000"
+    orange = "#e69f00"
+    skyblue = "#56b4e9"
+    green = "#009e73"
+    yellow = "#f0e442"
+    blue = "#0072b2"
+    vermilion = "#d55e00"
+    purple = "#cc79a7"
 
 
 def D(prob_state0):
@@ -51,7 +64,7 @@ if __name__ == "__main__":
 
     type_high = 2 / 3
     type_low = 5 / 6
-    num_types = 100000
+    num_types = 1000
     prob_state0s = np.linspace(0, 1, num_types)
 
     fig, axs = plt.subplots(3, 1, figsize=(6, 6))
@@ -62,10 +75,20 @@ if __name__ == "__main__":
             type_low, type_high, prob_state0s, phi
         )
 
-        # ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
-        # ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
+        ax.plot(
+            prob_state0s,
+            add_discontinuities(taus_critical_low, threshold=0.1),
+            color="k",
+            ls="solid",
+        )
+        ax.plot(
+            prob_state0s,
+            add_discontinuities(taus_critical_high, threshold=0.1),
+            color="k",
+            ls="dashed",
+        )
 
-        alpha = 0.5
+        alpha = 0.7
 
         ax.fill_between(
             prob_state0s,
@@ -73,27 +96,27 @@ if __name__ == "__main__":
             np.where(
                 prob_state0s <= 0.5, np.nanmax(taus_critical_high), np.nanmin(taus_critical_high)
             ),
-            facecolor="red",
+            facecolor=Colors.orange,
             alpha=alpha,
-            label=r"$(I^l, I^h) = (0, 0)$",
+            label=r"$(I^l, I^h) = (1, 1)$",
         )
 
         ax.fill_between(
             prob_state0s,
             np.where(prob_state0s <= 0.5, taus_critical_low, taus_critical_high),
             np.where(prob_state0s <= 0.5, taus_critical_high, taus_critical_low),
-            facecolor="blue",
+            facecolor=Colors.blue,
             alpha=alpha,
-            label=r"$(I^l, I^h) = (0, 1)$",
+            label=r"$(I^l, I^h) = (1, 0)$",
         )
 
         ax.fill_between(
             prob_state0s,
             np.where(prob_state0s <= 0.5, 0, 1e5),
             np.where(prob_state0s <= 0.5, taus_critical_low, taus_critical_low),
-            facecolor="green",
+            facecolor=Colors.green,
             alpha=alpha,
-            label=r"$(I^l, I^h) = (1, 1)$",
+            label=r"$(I^l, I^h) = (0, 0)$",
         )
 
         ax.set_ylim(top=1, bottom=0.01)
@@ -107,6 +130,8 @@ if __name__ == "__main__":
     phis = [0.36, 0.5, 0.56]
     for i, phi in enumerate(phis):
         ax = axs[i]
+        if i == 1:
+            ax.axvline(x=0.5, color="k")
         ax.set_title(f"$\\phi = {phi:.1f}$")
         _plot_results(
             phi,
