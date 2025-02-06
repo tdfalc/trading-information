@@ -43,7 +43,7 @@ if __name__ == "__main__":
     savedir = Path(__file__).parent / "docs/sim02_binary_types_noncongruent"
     os.makedirs(savedir, exist_ok=True)
 
-    type_high = 0.55
+    type_high = 0.65
     type_low = 0.1
     num_types = 1000
     prob_state0s = np.linspace(0, 1, num_types)
@@ -57,46 +57,54 @@ if __name__ == "__main__":
 
     taus_critical_low, taus_critical_high = compute_critical_taus(type_low, type_high, prob_state0s)
 
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid")
-    ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed")
+    fig, ax = plt.subplots(figsize=(4.25, 2.5))
+    ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid", lw=1)
+    ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed", lw=1)
     alpha = 0.7  # 0.2
-    ax.fill_between(
-        prob_state0s[prob_state0s <= 0.5],
-        taus_critical_high[prob_state0s <= 0.5],
-        np.nanmax(taus_critical_high),
-        facecolor=Colors.orange,
-        alpha=alpha,
-        label=r"$(I^l, I^h) = (-1/3, 1)$",
-    )
-    ax.fill_between(
-        prob_state0s[prob_state0s >= 0.5],
-        taus_critical_low[prob_state0s >= 0.5],
-        np.nanmax(taus_critical_low),
-        facecolor=Colors.blue,
-        alpha=alpha,
-        label=r"$(I^l, I^h) = (-1, 0)$",
-    )
+    # ax.fill_between(
+    #     prob_state0s[prob_state0s <= 0.5],
+    #     taus_critical_high[prob_state0s <= 0.5],
+    #     np.nanmax(taus_critical_high),
+    #     facecolor="k",
+    #     # facecolor=Colors.orange,
+    #     alpha=0.3,
+    #     label=r"$(-1/3, 1)$",
+    # )
+    # ax.fill_between(
+    #     prob_state0s[prob_state0s >= 0.5],
+    #     taus_critical_low[prob_state0s >= 0.5],
+    #     np.nanmax(taus_critical_low),
+    #     # facecolor=Colors.blue,
+    #     facecolor="k",
+    #     alpha=0.1,
+    #     label=r"$(-1, 0)$",
+    # )
 
-    ax.fill_between(
-        prob_state0s,
-        0,
-        np.concatenate(
-            [taus_critical_high[prob_state0s <= 0.5], taus_critical_low[prob_state0s > 0.5]]
-        ),
-        facecolor=Colors.green,
-        alpha=alpha,
-        label=r"$(I^l, I^h) = (-1/3, 0)$",
-    )
+    # ax.fill_between(
+    #     prob_state0s,
+    #     0,
+    #     np.concatenate(
+    #         [taus_critical_high[prob_state0s <= 0.5], taus_critical_low[prob_state0s > 0.5]]
+    #     ),
+    #     # facecolor=Colors.green,
+    #     facecolor="w",
+    #     alpha=1,
+    #     label=r"$(-1/3, 0)$",
+    # )
 
-    # ax.text(-0.1, 1.1, r"$(I^l, I^h) = (-\underbar{$I$}^l, 0)$", transform=ax.transAxes, size=20, weight="bold")
+    ax.set_xticks([0, 0.5, 1])
+    ax.set_yticks([0, 0.5, 1])
 
-    prettify(ax=ax, legend=True, legend_loc="lower left")
+    # ax.text(0.1, 0.76, r"$(-\frac{1}{3}, 1)$", ha="center", size=10)
+    # ax.text(0.83, 0.63, r"$(-1, 0)$", ha="center", size=10)
+    # ax.text(0.4, 0.43, r"$(-\frac{1}{3}, 0)$", ha="center", size=10)
 
-    ax.set_ylim(top=1, bottom=0.01)
+    prettify(ax=ax, legend=False, legend_loc="lower left")
+
+    ax.set_ylim(top=1, bottom=0)
     ax.set_xlim(left=0, right=1)
-    ax.set_xlabel(r"Seller's Information ($v_s$)")
-    ax.set_ylabel(r"Threshold $\tau$")
+    ax.set_xlabel(r"$v_s$")
+    ax.set_ylabel(r"$\tau$")
 
     fig.tight_layout()
     fig.savefig(savedir / "binary_types_noncongruent.pdf", dpi=300)

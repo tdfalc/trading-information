@@ -106,7 +106,9 @@ class Mechanism(BaseModel):
                     mask = self.midpoints >= np.maximum(midpoint, threshold)
 
                     # Update expression for average transfer
-                    transfer = np.sum(self.midpoints[i:] * self._pdfs[i:] + self._cdfs[i:])
+                    transfer = np.sum(
+                        self.midpoints[i:] * self._pdfs[i:] + self._cdfs[i:]
+                    )
                     transfer -= self._pdfs[mask].sum()
                     transfer *= increments[i]
                     avg_transfer += transfer
@@ -118,8 +120,6 @@ class Mechanism(BaseModel):
                     externality *= -increments[i]
                     avg_externality += externality
 
-                # These terms are constant with respect to the optimsation variables, however we
-                # add them in we can sanity check the objective function value. Can delete.
                 avg_transfer -= (self.midpoints * self._pdfs + self._cdfs).sum()
                 avg_transfer += self._pdfs[self.midpoints >= threshold].sum()
                 avg_transfer *= self._step
@@ -137,7 +137,9 @@ class Mechanism(BaseModel):
 
                 allocations = self._increments_to_allocations(increments.X)
                 transfers = self._allocations_to_transfers(allocations)
-                externalities = self._allocations_to_externalities(allocations, tau, prob_state0)
+                externalities = self._allocations_to_externalities(
+                    allocations, tau, prob_state0
+                )
                 multiplier = model.getConstrByName("integral").Pi * self.num_intervals
 
                 return (
@@ -210,7 +212,9 @@ class Mechanism(BaseModel):
                     )
 
                     # Compute virtual value based on allocation sign
-                    virtual_value = negative[i] * (1 - binaries[i]) + positive[i] * binaries[i]
+                    virtual_value = (
+                        negative[i] * (1 - binaries[i]) + positive[i] * binaries[i]
+                    )
                     lagrangian += (virtual_value - multiplier) * allocations[i]
 
                 # Set the objective function
@@ -220,6 +224,8 @@ class Mechanism(BaseModel):
                 # Extract results
                 allocations = allocations.X
                 transfers = self._allocations_to_transfers(allocations)
-                externalities = self._allocations_to_externalities(allocations, tau, prob_state0)
+                externalities = self._allocations_to_externalities(
+                    allocations, tau, prob_state0
+                )
 
                 return allocations, transfers, externalities, model.ObjVal

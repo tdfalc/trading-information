@@ -35,9 +35,30 @@ class Uniform(Distribution, BaseModel):
         if self.low >= self.high:
             raise ValueError("`low` must be less than `high`.")
         # Initialize the scipy uniform distribution
-        object.__setattr__(
-            self, "_dist", stats.uniform(loc=self.low, scale=self.high - self.low)
-        )
+        object.__setattr__(self, "_dist", stats.uniform(loc=self.low, scale=self.high - self.low))
+        return self
+
+    def pdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
+        return self._dist.pdf(x)
+
+    def cdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
+        return self._dist.cdf(x)
+
+
+class Normal(Distribution, BaseModel):
+    """Uniform distribution defined by lower and upper bounds."""
+
+    loc: float = Field(..., description="Lower bound of the uniform distribution.")
+    scale: float = Field(..., description="Upper bound of the uniform distribution.")
+
+    # Internal attribute for the scipy distribution
+    _dist: stats.rv_continuous = PrivateAttr()
+
+    @model_validator(mode="after")
+    def validate_and_initialize(self) -> "Uniform":
+
+        # Initialize the scipy uniform distribution
+        object.__setattr__(self, "_dist", stats.norm(loc=self.loc, scale=self.scale))
         return self
 
     def pdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
@@ -50,15 +71,9 @@ class Uniform(Distribution, BaseModel):
 class BetaMixture(Distribution, BaseModel):
     """Mixture of beta distributions with specified weights."""
 
-    alphas: List[float] = Field(
-        ..., description="List of alpha parameters for beta distributions."
-    )
-    betas: List[float] = Field(
-        ..., description="List of beta parameters for beta distributions."
-    )
-    weights: List[float] = Field(
-        ..., description="List of weights for the mixture components."
-    )
+    alphas: List[float] = Field(..., description="List of alpha parameters for beta distributions.")
+    betas: List[float] = Field(..., description="List of beta parameters for beta distributions.")
+    weights: List[float] = Field(..., description="List of weights for the mixture components.")
 
     # Internal attribute for the beta distributions
     _dists: List[stats.rv_continuous] = PrivateAttr()
