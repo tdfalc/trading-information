@@ -147,6 +147,8 @@ class Mechanism(BaseModel):
                     transfers,
                     externalities,
                     multiplier,
+                    avg_transfer.getValue(),
+                    avg_externality.getValue(),
                     model.ObjVal,
                 )
 

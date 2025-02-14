@@ -184,7 +184,7 @@ def main():
             transfers,
             externalities,
             multiplier,
-            _,
+            *_,
         ) = mechanism.solve_with_increments(
             tau=tau, prob_state0=prob_state0, threshold_index=threshold_index
         )
@@ -205,13 +205,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+    use_tex()
 
     savedir = Path(__file__).parent / "docs/sim06_uniform_types_continuous"
     os.makedirs(savedir, exist_ok=True)
 
     prob_state0 = 0.9
     dist = Uniform(low=0, high=1)
-    dist = Normal(loc=0, scale=0.9)
+    # dist = Normal(loc=0, scale=0.9)
 
     # for j, tau in enumerate((0, 0.6, 1.3)):
     t_prime = (1 - 2 * prob_state0) ** (-2)
@@ -225,7 +226,7 @@ if __name__ == "__main__":
             transfers,
             externalities,
             multiplier,
-            _,
+            *_,
         ) = mechanism.solve_with_increments(tau=tau, prob_state0=prob_state0, threshold_index=500)
         print(tau, multiplier)
 
@@ -251,23 +252,83 @@ if __name__ == "__main__":
         # ax.fill_between(midpoints, -10, 10, where=where, color="yellow", alpha=1)
         # ax.fill_between(midpoints, negative, positive, where=where, color="yellow", alpha=1)
         if i <= 1:
-            ax.axvline(x=midpoints[np.argmax(where)], color="k", ls="solid", lw=0.8, alpha=0.5)
             ax.axvline(
-                x=midpoints[len(where) - np.argmax(where) - 1],
-                color="k",
+                x=midpoints[np.argmax(where)],
+                color="b",
                 ls="solid",
                 lw=0.8,
-                alpha=0.5,
+                alpha=1,
+            )
+            ax.axvline(
+                x=midpoints[len(where) - np.argmax(where) - 1],
+                color="b",
+                ls="solid",
+                lw=0.8,
+                alpha=1,
             )
         else:
-            ax.axvline(x=0.5, color="k", ls="solid", lw=0.8, alpha=0.5)
+            ax.axvline(x=0.5, color="b", ls="solid", lw=0.8, alpha=1)
+
+        s = 50
+        if tau < t_prime:
+            # ax.scatter(
+            #     [0.5],
+            #     0.5 * (negative[500] + positive[500]),
+            #     zorder=5,
+            #     facecolor=None,
+            #     color=None,
+            #     edgecolor="r",
+            #     lw=0.8,
+            #     s=s,
+            # )
+            ax.plot(
+                [0.5],
+                0.5 * (negative[500] + positive[500]),
+                marker="o",
+                ms=4,
+                markerfacecolor="r",
+                markeredgecolor="r",
+                markeredgewidth=0.8,
+            )
+        else:
+            ax.plot(
+                [0.5],
+                [positive[500]],
+                marker="o",
+                ms=4,
+                markerfacecolor="r",
+                markeredgecolor="r",
+                markeredgewidth=0.8,
+            )
 
         ax.set_ylim(top=2, bottom=-2)
         # ax.set_xlim()
-        ax.axhline(y=lag, color="r", ls="solid", zorder=1, label=r"$\lambda$", lw=0.8)
+        ax.axhline(y=lag, c="r", lw=0.8)
+        # ax.plot(
+        #     [-1, 0.5],
+        #     [lag, lag],
+        #     color="r",
+        #     ls="solid",
+        #     zorder=1,
+        #     label=r"$\lambda$",
+        #     lw=0.8,
+        #     alpha=1,
+        # )
+        ax.plot(
+            [0.5, 0.5],
+            [-3, lag],
+            color="r",
+            ls="solid",
+            zorder=1,
+            label=r"$\lambda$",
+            lw=0.8,
+            alpha=1,
+        )
 
         ax.set_ylabel("$\pi(I, v_b)$")
         ax.set_xlabel("$v_b$")
+        ax.set_xlim(left=0, right=1)
+        # ax.text(0.5, 0.5, "tet")
 
         prettify(ax=ax, legend=False)
 
