@@ -118,17 +118,18 @@ if __name__ == "__main__":
     ts = np.array(ts)
 
     fig, ax = plt.subplots(figsize=(4, 2.5))
-    ax.plot(taus, objectives, lw=0.8, ls="solid", c="k", label="Mechanism")
-    ax.plot(taus, -costs, lw=0.8, ls="dashed", c="k", label="Altruistic")
+    ax.plot(taus, objectives, lw=0.8, ls="solid", c="k", label="Strategic Versioning")
     ax.plot(taus, -np.array(costs_noinfo), lw=0.8, ls="dashdot", c="k", label="No Sharing")
+    ax.plot(taus, -costs, lw=0.8, ls="dashed", c="k", label="Altruistic")
     t_prime = (1 - 2 * prob_state0) ** -2
     idx = np.argmax(objectives < 0)
     # ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
-    ax.set_xlim(left=0, right=2)
-    # ax.set_ylim(bottom=-0.85, top=0.3)
+    ax.set_xlim(left=0, right=1.5)
+    ax.set_ylim(bottom=-0.85)
     plt.rcParams.update({"text.latex.preamble": r"\usepackage{amsfonts}"})
     ax.set_ylabel("$\mathbb{E}_{\mathcal{V}_b} [ J(I, v_b) ]$")
     ax.set_xlabel(r"$\tau$")
+    # ax.axvline
     prettify(ax=ax, legend=False)
     ax.legend(
         facecolor="#eeeeee",

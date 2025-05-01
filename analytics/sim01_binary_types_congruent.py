@@ -263,6 +263,40 @@ if __name__ == "__main__":
             lw=1,
         )
 
+        ax.annotate(
+            "",
+            xy=(2 / 3, -0.05),
+            xytext=(2 / 3, 0.05),  # Adds another annotation for the text that you want
+            arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
+            annotation_clip=False,
+            color="k",
+        )
+
+        ax.annotate(
+            r"$v_b^h$",
+            xy=(0.63, 0),
+            xytext=(0.63, 0.08),  # Adds another annotation for the text that you want
+            annotation_clip=False,
+            color="k",
+        )
+
+        ax.annotate(
+            "",
+            xy=(5 / 6, -0.05),
+            xytext=(5 / 6, 0.05),  # Adds another annotation for the text that you want
+            arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
+            annotation_clip=False,
+            color="k",
+        )
+
+        ax.annotate(
+            r"$v_b^l$",
+            xy=(0.8, 0),
+            xytext=(0.8, 0.08),  # Adds another annotation for the text that you want
+            annotation_clip=False,
+            color="k",
+        )
+
         # ax.fill_between(
         #     prob_state0s,
         #     np.where(prob_state0s <= 0.5, taus_critical_high, taus_critical_high),

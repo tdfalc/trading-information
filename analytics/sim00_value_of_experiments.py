@@ -21,6 +21,12 @@ def calculate_exerpiment_value(informativeness: float, type: float) -> float:
     )
 
 
+def calculate_exerpiment_value(informativeness: float, type: float) -> float:
+    return np.maximum(
+        0, 1 - informativeness * ((informativeness >= 0) - type) - np.maximum(type, 1 - type)
+    )
+
+
 if __name__ == "__main__":
 
     logger.info("Running value of experiments analysis")
@@ -72,6 +78,7 @@ if __name__ == "__main__":
     ax.set_xlabel("$v_b$")
     # ax.set_ylabel(r"$I(v_b)$")
     ax.set_ylabel(r"$\delta(I, v_b)$")
+    ax.axvline(x=0.5, c="k", zorder=0, alpha=0.3, lw=1)
     # ax.set_xticks((0, 1.5, 3, 4.5, 6))
     # ax.set_xticklabels(("$0.0$", "$0.25$", "$0.5$", "$0.75$", "$1.0$"))
     # ax.set_yticks((-2, -1, 0, 1, 2))

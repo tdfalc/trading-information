@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     taus_critical_low, taus_critical_high = compute_critical_taus(type_low, type_high, prob_state0s)
 
-    fig, ax = plt.subplots(figsize=(4.25, 2.5))
+    fig, ax = plt.subplots(figsize=(3.5, 2.3))
     ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid", lw=1)
     ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed", lw=1)
     alpha = 0.7  # 0.2
@@ -94,6 +94,40 @@ if __name__ == "__main__":
 
     ax.set_xticks([0, 0.5, 1])
     ax.set_yticks([0, 0.5, 1])
+
+    ax.annotate(
+        "",
+        xy=(2 / 3, -0.05),
+        xytext=(2 / 3, 0.05),  # Adds another annotation for the text that you want
+        arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
+        annotation_clip=False,
+        color="k",
+    )
+
+    ax.annotate(
+        r"$v_b^h$",
+        xy=(0.64, 0),
+        xytext=(0.64, 0.08),  # Adds another annotation for the text that you want
+        annotation_clip=False,
+        color="k",
+    )
+
+    ax.annotate(
+        "",
+        xy=(1 / 6, -0.05),
+        xytext=(1 / 6, 0.05),  # Adds another annotation for the text that you want
+        arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
+        annotation_clip=False,
+        color="k",
+    )
+
+    ax.annotate(
+        r"$v_b^l$",
+        xy=(0.14, 0),
+        xytext=(0.14, 0.08),  # Adds another annotation for the text that you want
+        annotation_clip=False,
+        color="k",
+    )
 
     # ax.text(0.1, 0.76, r"$(-\frac{1}{3}, 1)$", ha="center", size=10)
     # ax.text(0.83, 0.63, r"$(-1, 0)$", ha="center", size=10)
