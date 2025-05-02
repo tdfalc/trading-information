@@ -1,11 +1,10 @@
-import os
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 from tfds.plotting import prettify, use_tex
 from tfds.log import create_logger
+
 
 logger = create_logger(__name__)
 

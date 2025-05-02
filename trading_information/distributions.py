@@ -35,7 +35,9 @@ class Uniform(Distribution, BaseModel):
         if self.low >= self.high:
             raise ValueError("`low` must be less than `high`.")
         # Initialize the scipy uniform distribution
-        object.__setattr__(self, "_dist", stats.uniform(loc=self.low, scale=self.high - self.low))
+        object.__setattr__(
+            self, "_dist", stats.uniform(loc=self.low, scale=self.high - self.low)
+        )
         return self
 
     def pdf(self, x: _FloatOrFloats) -> _FloatOrFloats:
@@ -71,9 +73,15 @@ class Normal(Distribution, BaseModel):
 class BetaMixture(Distribution, BaseModel):
     """Mixture of beta distributions with specified weights."""
 
-    alphas: List[float] = Field(..., description="List of alpha parameters for beta distributions.")
-    betas: List[float] = Field(..., description="List of beta parameters for beta distributions.")
-    weights: List[float] = Field(..., description="List of weights for the mixture components.")
+    alphas: List[float] = Field(
+        ..., description="List of alpha parameters for beta distributions."
+    )
+    betas: List[float] = Field(
+        ..., description="List of beta parameters for beta distributions."
+    )
+    weights: List[float] = Field(
+        ..., description="List of weights for the mixture components."
+    )
 
     # Internal attribute for the beta distributions
     _dists: List[stats.rv_continuous] = PrivateAttr()
