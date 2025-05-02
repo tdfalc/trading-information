@@ -19,12 +19,13 @@ As an example, in the case of congruent binary types (Section 4.1), information 
 If you find this useful in your work, we kindly request that you cite the following publication(s):
 
 ```
-@misc{falconer2023bayesian,
-      title={Bayesian Regression Markets}, 
-      author={Thomas Falconer and Jalal Kazempour and Pierre Pinson},
-      year={2023},
-      eprint={2310.14992},
+@misc{falconer2025sellinginformation,
+      title={Selling Information in Games with Externalities}, 
+      author={Thomas Falconer and Anubhav Ratha and Jalal Kazempour and Pierre Pinson and Maryam Kamgarpour},
+      year={2025},
+      eprint={2505.00405},
       archivePrefix={arXiv},
-      primaryClass={cs.LG}
+      primaryClass={cs.GT},
+      url={https://arxiv.org/abs/2505.00405}, 
 }
 ```
