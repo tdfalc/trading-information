@@ -1,142 +1,81 @@
 import os
-from typing import Tuple
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 from tfds.plotting import prettify, use_tex
 from tfds.log import create_logger
-from analytics.sim01_binary_types_congruent import Colors
-
 
 logger = create_logger(__name__)
 
 
-def tau_critical_low(type_low: float, prob_state0: float) -> float:
+def tau_critical_low(type_low: float, prob_state0: np.ndarray) -> np.ndarray:
+    """Compute the critical τ values for the low type."""
     return type_low / (prob_state0 * (2 * prob_state0 - 1))
 
 
-def tau_critical_high(type_high: float, prob_state0: float) -> float:
+def tau_critical_high(type_high: float, prob_state0: np.ndarray) -> np.ndarray:
+    """Compute the critical τ values for the high type."""
     return (1 - type_high) / ((1 - 2 * prob_state0) * (1 - prob_state0))
 
 
-def compute_critical_taus(type_low: float, type_high: float, prob_state0s: np.ndarray) -> Tuple:
-
+def compute_critical_taus(
+    type_low: float, type_high: float, prob_state0s: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute valid critical τ values for both low and high types."""
     with np.errstate(divide="ignore", invalid="ignore"):
-        # Compute critical taus for the high type
-        taus_critical_high = tau_critical_high(type_high, prob_state0s)
-        taus_critical_high[taus_critical_high <= 0] = np.nan
+        taus_low = tau_critical_low(type_low, prob_state0s)
+        taus_low[taus_low <= 0] = np.nan
 
-        # Compute critical taus for the low type
-        taus_critical_low = tau_critical_low(type_low, prob_state0s)
-        taus_critical_low[taus_critical_low <= 0] = np.nan
+        taus_high = tau_critical_high(type_high, prob_state0s)
+        taus_high[taus_high <= 0] = np.nan
 
-    return taus_critical_low, taus_critical_high
+    return taus_low, taus_high
+
+
+def add_arrow_annotation(ax, x: float, label: str):
+    """Add an arrow and label to the plot at a given x-coordinate."""
+    ax.annotate(
+        "",
+        xy=(x, -0.05),
+        xytext=(x, 0.05),
+        arrowprops=dict(arrowstyle="-"),
+        annotation_clip=False,
+        color="k",
+    )
+    ax.annotate(label, xy=(x - 0.02, 0), xytext=(x - 0.02, 0.08), annotation_clip=False, color="k")
 
 
 if __name__ == "__main__":
-
     logger.info("Running binary types (noncongruent) analysis")
 
     use_tex()
 
     savedir = Path(__file__).parent / "docs/sim02_binary_types_noncongruent"
-    os.makedirs(savedir, exist_ok=True)
+    savedir.mkdir(parents=True, exist_ok=True)
 
     type_high = 0.65
     type_low = 0.1
-    num_types = 1000
-    prob_state0s = np.linspace(0, 1, num_types)
+    num_points = 1000
+    prob_state0s = np.linspace(0, 1, num_points)
 
-    # type_high = 2 / 3
-    # type_low = 1 / 6
-    lower_bound = (2 * type_high - 1) / (type_high - type_low)
-    print(lower_bound)
-
-    # print(lower_bound)
-
-    taus_critical_low, taus_critical_high = compute_critical_taus(type_low, type_high, prob_state0s)
+    taus_low, taus_high = compute_critical_taus(type_low, type_high, prob_state0s)
 
     fig, ax = plt.subplots(figsize=(3.5, 2.3))
-    ax.plot(prob_state0s, taus_critical_low, color="k", ls="solid", lw=1)
-    ax.plot(prob_state0s, taus_critical_high, color="k", ls="dashed", lw=1)
-    alpha = 0.7  # 0.2
-    # ax.fill_between(
-    #     prob_state0s[prob_state0s <= 0.5],
-    #     taus_critical_high[prob_state0s <= 0.5],
-    #     np.nanmax(taus_critical_high),
-    #     facecolor="k",
-    #     # facecolor=Colors.orange,
-    #     alpha=0.3,
-    #     label=r"$(-1/3, 1)$",
-    # )
-    # ax.fill_between(
-    #     prob_state0s[prob_state0s >= 0.5],
-    #     taus_critical_low[prob_state0s >= 0.5],
-    #     np.nanmax(taus_critical_low),
-    #     # facecolor=Colors.blue,
-    #     facecolor="k",
-    #     alpha=0.1,
-    #     label=r"$(-1, 0)$",
-    # )
-
-    # ax.fill_between(
-    #     prob_state0s,
-    #     0,
-    #     np.concatenate(
-    #         [taus_critical_high[prob_state0s <= 0.5], taus_critical_low[prob_state0s > 0.5]]
-    #     ),
-    #     # facecolor=Colors.green,
-    #     facecolor="w",
-    #     alpha=1,
-    #     label=r"$(-1/3, 0)$",
-    # )
+    ax.plot(prob_state0s, taus_low, color="k", linestyle="solid", linewidth=1)
+    ax.plot(prob_state0s, taus_high, color="k", linestyle="dashed", linewidth=1)
 
     ax.set_xticks([0, 0.5, 1])
     ax.set_yticks([0, 0.5, 1])
 
-    ax.annotate(
-        "",
-        xy=(2 / 3, -0.05),
-        xytext=(2 / 3, 0.05),  # Adds another annotation for the text that you want
-        arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
-        annotation_clip=False,
-        color="k",
-    )
-
-    ax.annotate(
-        r"$v_b^h$",
-        xy=(0.64, 0),
-        xytext=(0.64, 0.08),  # Adds another annotation for the text that you want
-        annotation_clip=False,
-        color="k",
-    )
-
-    ax.annotate(
-        "",
-        xy=(1 / 6, -0.05),
-        xytext=(1 / 6, 0.05),  # Adds another annotation for the text that you want
-        arrowprops=dict(arrowstyle="-"),  # sets style of arrow and colour
-        annotation_clip=False,
-        color="k",
-    )
-
-    ax.annotate(
-        r"$v_b^l$",
-        xy=(0.14, 0),
-        xytext=(0.14, 0.08),  # Adds another annotation for the text that you want
-        annotation_clip=False,
-        color="k",
-    )
-
-    # ax.text(0.1, 0.76, r"$(-\frac{1}{3}, 1)$", ha="center", size=10)
-    # ax.text(0.83, 0.63, r"$(-1, 0)$", ha="center", size=10)
-    # ax.text(0.4, 0.43, r"$(-\frac{1}{3}, 0)$", ha="center", size=10)
+    add_arrow_annotation(ax, 2 / 3, r"$v_b^h$")
+    add_arrow_annotation(ax, 1 / 6, r"$v_b^l$")
 
     prettify(ax=ax, legend=False, legend_loc="lower left")
 
-    ax.set_ylim(top=1, bottom=0)
-    ax.set_xlim(left=0, right=1)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
     ax.set_xlabel(r"$v_s$")
     ax.set_ylabel(r"$\tau$")
 
