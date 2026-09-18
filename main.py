@@ -15,10 +15,9 @@ from scipy.optimize import brentq, root
 FIGURE_WIDTH = 7.2  # Inches.
 BLACK = "#262626"
 GREY = "#90959B"
-BLUE = "C0"
-ORANGE = "C1"
-PURPLE = "C4"
-GREEN = "C2"
+BLUE = "#0072B2"
+ORANGE = "#E69F00"
+GREEN = "#009E73"
 
 STYLE = {
     "font.size": 12,
@@ -300,7 +299,7 @@ def figure_two_types() -> Figure:
         labelspacing=0.4,
         fontsize=10,
     )
-    style_axes(rents, "Information frac. " + r"$\alpha$", r"Required rent $r_h$", grid=False)
+    style_axes(rents, "Low-type disclosure " + r"$\alpha$", r"Required rent $r_h$", grid=False)
 
     rents.set_xticks([0, 0.5, 1], ["0", r"$1/2$", "1"])
     rents.set_yticks([0, 0.1, 0.2], ["0", r"$1/10$", r"$1/5$"])
@@ -333,7 +332,7 @@ def figure_two_types() -> Figure:
         )
         ax.text(
             0.23 if denominator == 2 else 0.17,
-            0.16 if denominator == 2 else 0.12,
+            0.12,
             "Pooling\n" + r"$\alpha^*=1$",
             ha="center",
             va="center",
@@ -358,7 +357,7 @@ def figure_two_types() -> Figure:
 
 def figure_posted_price() -> Figure:
     """Draw a balanced allocation and its posted-price implementation."""
-    fig, (allocation, utility) = new_figure(2, 3.35)
+    fig, (allocation, utility) = new_figure(2, 3.1)
     price = 1 / 3
 
     allocation.fill_between([0, price], -1, 0, color=ORANGE, alpha=0.11, zorder=0)
@@ -372,16 +371,16 @@ def figure_posted_price() -> Figure:
         1 - price / 2, 0.43, r"$+c$", ha="center", fontsize=11, color=ORANGE
     )
     allocation.text(
-        price / 2, -0.82, "Default 0", ha="center", fontsize=10, color="#676D73"
+        price / 2, -0.9, "Default 0", ha="center", fontsize=10, color="#676D73"
     )
     allocation.text(
         1 - price / 2, 0.82, "Default 1", ha="center", fontsize=10, color="#676D73"
     )
-    allocation.text(0.5, 0.16, "Full information", ha="center", fontsize=10, color=BLUE)
+    allocation.text(0.5, 0.12, r"$I=0$", ha="center", fontsize=10, color=BLUE)
     allocation.set_xticks(
         [0, price, 1 - price, 1], ["0", r"$1/3$", r"$2/3$", "1"]
     )
-    allocation.set_ylabel(r"Signed distortion $I(\theta)$")
+    allocation.set_ylabel(r"Signed-distortion $I(\theta)$")
 
     theta = np.unique(np.r_[np.linspace(0, 1, 1201), price, 0.5, 1 - price])
     value = full_information_value(theta)
@@ -389,7 +388,7 @@ def figure_posted_price() -> Figure:
     utility.axvspan(price, 1 - price, color=BLUE, alpha=0.065, zorder=0)
     utility.plot(theta, value, color=BLUE, label=r"Value $v(\theta)$")
     utility.axhline(price, color=ORANGE, ls="--", lw=1.8, label=r"Price $c=1/3$")
-    utility.plot(theta, rent, color=PURPLE, ls="-.", label=r"Rent $U(\theta)$")
+    utility.plot(theta, rent, color=GREEN, ls="-.", label=r"Rent $U(\theta)$")
     utility.text(0.50, 0.22, "Purchase", ha="center", fontsize=10, color=BLUE)
     styled_legend(utility,
         loc="upper right",
@@ -429,13 +428,7 @@ def figure_uniform_competition() -> Figure:
         clip_on=False,
     )
     allocation.text(
-        0.30, 0.5, "Full information", ha="center", va="center", fontsize=10, color=BLUE
-    )
-    allocation.text(
-        0.40, 0.085, "No information", ha="center", fontsize=10, color="#60656A"
-    )
-    allocation.text(
-        0.40, 0.90, "No information", ha="center", fontsize=10, color="#60656A"
+        0.30, 0.5, r"$I=0$", ha="center", va="center", fontsize=10, color=BLUE
     )
     allocation.text(
         0.40, 0.19, r"Cutoff = price $t^*(\tau)$", ha="center", fontsize=10, color=BLUE
@@ -477,11 +470,11 @@ def figure_ironing(solution: IrregularSolution) -> Figure:
     ironed = np.where((theta >= a) & (theta <= b), multiplier, raw)
     ironing.axhline(multiplier, color="#AAAAAA", ls=":", lw=0.8)
     ironing.plot(theta, raw, color=GREY, ls="--", lw=1.6, label="Raw")
-    ironing.plot(theta, ironed, color=PURPLE, lw=1.5, label="Ironed")
+    ironing.plot(theta, ironed, color=GREEN, lw=1.5, label="Ironed")
     ironing.text(0.128, multiplier + 0.018, r"$\lambda^*$", fontsize=10, color="#777777")
     for cutoff, label in ((a, "a"), (b, "b")):
-        ironing.plot([cutoff, cutoff], [0.34, multiplier], color=PURPLE, ls=":", lw=0.8)
-        ironing.text(cutoff + 0.008, 0.37, f"${label}$", fontsize=10, color=PURPLE)
+        ironing.plot([cutoff, cutoff], [0.34, multiplier], color=GREEN, ls=":", lw=0.8)
+        ironing.text(cutoff + 0.008, 0.37, f"${label}$", fontsize=10, color=GREEN)
     styled_legend(ironing,
         loc="upper left",
         handlelength=1.25,
@@ -496,6 +489,7 @@ def figure_ironing(solution: IrregularSolution) -> Figure:
         xticks=[0.2, 0.3, 0.4],
         yticks=[0.4, 0.6, 0.8],
     )
+    
     style_axes(ironing, r"Posterior belief $\theta$", r"Virtual value $\Phi_-$", grid=False)
 
     allocation_zero.axvspan(a, b, color=ORANGE, alpha=0.08, zorder=0)
