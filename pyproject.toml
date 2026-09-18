@@ -1,22 +1,14 @@
-[tool.poetry]
+[project]
 name = "trading-information"
 version = "0.1.0"
-description = ""
-authors = ["tdfalc <tomdfalc@gmail.com>"]
+description = "Add your description here"
 readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib>=3.9.4",
+    "numpy>=2.0.2",
+    "scipy>=1.13.1",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-tfds = "0.3"
-scipy = "^1.14.0"
-numpy = "^2.0.1"
-gurobipy = "^11.0.3"
-pillow = "^11.1.0"
-
-
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv]
+package = false
